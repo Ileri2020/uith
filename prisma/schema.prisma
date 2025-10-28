@@ -14,18 +14,24 @@ datasource db {
 
 model User {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String?
+  first_name     String?
+  last_name     String?
+  date_of_birth     String?
+  gender     String?
+  national_id     String?
+  blood_type     String?
   email    String   @unique
   password String
-  role     String   @default("customer")
+  role     String   @default("customer") //professional admin staff
   cart     Cart[]
   //orders   Order[]
   reviews  Review[]
-  addresses ShippingAddress[]
+  address ShippingAddress[]
   post Post[]
   notification  Notification[]
   avatarUrl   String?
-  contact  String?  @default("xxxx-xxx-xxxx")
+  phone_number  String?  @default("xxxx-xxx-xxxx")
+  emergency_contact  String?  @default("xxxx-xxx-xxxx")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -68,8 +74,12 @@ model Product {
   description String?
   category     Category     @relation(fields: [categoryId], references: [id])
   categoryId    String    @db.ObjectId
+  activeIngredients    String[]
+  scarce      Boolean?
+  for       String[]  //patients like oncology/cancer, hiv, etc
+  brand      String?
   price    Float
-  stock    Stock?    //@relation(fields: [stockId], references: [id])
+  stock    Stock[]    //@relation(fields: [stockId], references: [id])
   //stockId  String?   @db.ObjectId
   reviews  Review[]
   cartItems CartItem[]

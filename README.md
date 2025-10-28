@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏥 Hospital Management System
 
-## Getting Started
+A full-stack hospital management platform designed to improve healthcare operations through centralized patient records, staff scheduling, room assignments, pharmacy tracking, and appointment management.
 
-First, run the development server:
+This project is developed as the **Final Project for CPE241 - Database Systems**,
+Department of Computer Engineering, King Mongkut's University of Technology Thonburi (KMUTT).
+
+## ✨ Features
+
+- 📅 Appointment system
+- 💊 Pharmacy stock and prescriptions
+- 👨‍⚕️ Patient record management and visit history
+- 🛏 Room and bed assignment tracking
+- 👩‍⚕️ Staff roles and scheduling
+- 🔐 Secure email-based authentication
+
+## 👥 Team Members
+
+| Student ID  | Name                    | Role                                  |
+| ----------- | ----------------------- | ------------------------------------- |
+| 66070503434 | Parunchai Kaewkhampa    | Project Manager, Full-Stack Developer |
+| 66070503446 | Pakkawat Kaolim         | Backend Developer, Database Designer  |
+| 66070503451 | Veerathach Rattanarojt  | Backend Developer, Tester             |
+| 66070503460 | Hein Min Thu            | Backend Developer, Database Designer  |
+| 66070503462 | Kamil Pattanasakulloy   | Frontend Developer, UX/UI Designer    |
+| 66070503470 | Thanatat Aunjatturaporn | Frontend Developer, Tester            |
+
+## 🚀 Tech Stack
+
+- **Frontend**: [Next.js](https://nextjs.org/), [Tailwind CSS](https://tailwindcss.com/), [ShadCN UI](https://ui.shadcn.com/)
+- **Backend**: Next.js API Routes
+- **Authentication**: [NextAuth.js](https://next-auth.js.org/) with Supabase Auth
+- **Database**: [Supabase](https://supabase.com/) (PostgreSQL)
+- **Deployment**: [Vercel](https://vercel.com/) + Supabase Hosting
+
+## ⚙️ Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/parunchxi/hospital-management-system.git
+cd hospital-management-system
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Create `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🌐 Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project is deployed using:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend + Backend**: [Vercel](https://vercel.com/)
+- **Database & Auth**: [Supabase](https://supabase.com/)
 
-## Learn More
+## 📌 License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is developed for educational purposes and does not currently include a commercial license. For academic and demonstration use only.

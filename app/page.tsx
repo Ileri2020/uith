@@ -1,10 +1,9 @@
-"use client"
-import HomeComponent from "./home/page";
+import Hero from '@/components/hero'
 
-export default function Home() {
+export default async function Home() {
   return (
-    <div>
-      <HomeComponent />
-    </div>
-  );
+    <>
+      <Hero />
+    </>
+  )
 }
