@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 
   if (role !== 'Admin' && role !== 'Doctor') {
     return NextResponse.json(
-      { error: 'Forbidden: Only admins or doctors can view staff' },
+      { error: 'Forbidden: Only admins or doctors can view staff' },  
       { status: 403 },
     )
   }
