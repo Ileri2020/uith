@@ -84,7 +84,7 @@ export const signUpAction = async (formData: FormData) => {
         last_name,
         date_of_birth,
         gender,
-        national_id,
+        national_id: `${national_id}`,
         address,
         phone_number,
         blood_type,
