@@ -38,7 +38,7 @@ const dataBarChartCard = [
 
 const propsBarChartCard = {
   title: "Revenue by Month",
-  data: data,
+  data: 'data',//data,
   dataKey: "revenue",
   categoryKey: "month",
   color: "hsl(var(--chart-2))"
@@ -60,7 +60,7 @@ const config = {
 
 const propsDepartmentAreaChart = {
   title: "Department Performance",
-  data: data,
+  data: 'data', //data,
   config: config
 };
 
@@ -74,7 +74,7 @@ const dataGenderDistributionChart = [
 ];
 
 const propsGenderDistributionChart = {
-  data: data
+  data: 'data'//data
 };
 
 
@@ -89,7 +89,7 @@ const dataMedicineQuantityChart = [
 ];
 
 const propsMedicineQuantityChart = {
-  data: data
+  data: 'data'//data
 };
 
 
@@ -104,7 +104,7 @@ const dataRevenueOverTimeChart = [
 ];
 
 const propsRevenueOverTimeChart = {
-  data: data
+  data: 'data' //data
 };
 
 
