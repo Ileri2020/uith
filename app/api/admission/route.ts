@@ -229,23 +229,23 @@ export async function GET() {
   const { role } = result
 
   if (role == 'Admin') {
-    const { data, error } = await supabase
-      .from('admissions')
-      .select(
-        `
-        *
-      `,
-      )
-      .order('admission_date', { ascending: false })
+    // const { data, error } = await supabase
+    //   .from('admissions')
+    //   .select(
+    //     `
+    //     *
+    //   `,
+    //   )
+    //   .order('admission_date', { ascending: false })
 
-    if (error) {
-      console.error('Get admissions error:', error)
-      return NextResponse.json(
-        { error: 'Failed to retrieve admission records' },
-        { status: 500 },
-      )
-    }
-    return NextResponse.json({ data }, { status: 200 })
+    // if (error) {
+    //   console.error('Get admissions error:', error)
+    //   return NextResponse.json(
+    //     { error: 'Failed to retrieve admission records' },
+    //     { status: 500 },
+    //   )
+    // }
+    return NextResponse.json( [{data :'data'}] , { status: 200 })
   } else if (role == 'Doctor') {
     const now = new Date().toISOString()
 
@@ -283,38 +283,38 @@ export async function GET() {
     ], { status: 200 }) // Changed to match other response formats
   } else if (role == 'Nurse') {
     // Fetch admissions for the logged-in nurse
-    const { data: nurse, error: nurseError } = await supabase
-      .from('medical_staff')
-      .select('staff_id, staff_type')
-      .eq('user_id', result.userId)
-      .single()
+    // const { data: nurse, error: nurseError } = await supabase
+    //   .from('medical_staff')
+    //   .select('staff_id, staff_type')
+    //   .eq('user_id', result.userId)
+    //   .single()
 
-    if (nurseError || !nurse) {
-      return NextResponse.json(
-        { error: 'Failed to retrieve nurse information' },
-        { status: 500 },
-      )
-    }
+    // if (nurseError || !nurse) {
+    //   return NextResponse.json(
+    //     { error: 'Failed to retrieve nurse information' },
+    //     { status: 500 },
+    //   )
+    // }
 
-    const { data, error } = await supabase
-      .from('admissions')
-      .select(
-        `
-        *, 
-        rooms: room_id ( departments: department_id ( name ) )
-      `,
-      )
-      .eq('nurse_id', nurse.staff_id)
-      .order('admission_date', { ascending: false })
+    // const { data, error } = await supabase
+    //   .from('admissions')
+    //   .select(
+    //     `
+    //     *, 
+    //     rooms: room_id ( departments: department_id ( name ) )
+    //   `,
+    //   )
+    //   .eq('nurse_id', nurse.staff_id)
+    //   .order('admission_date', { ascending: false })
 
-    if (error) {
-      console.error('Get admissions error:', error)
-      return NextResponse.json(
-        { error: 'Failed to retrieve admission records' },
-        { status: 500 },
-      )
-    }
+    // if (error) {
+    //   console.error('Get admissions error:', error)
+    //   return NextResponse.json(
+    //     { error: 'Failed to retrieve admission records' },
+    //     { status: 500 },
+    //   )
+    // }
 
-    return NextResponse.json({ data }, { status: 200 })
+    return NextResponse.json([{data : 'data'}], { status: 200 })
   }
 }
