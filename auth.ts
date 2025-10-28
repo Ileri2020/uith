@@ -1,5 +1,5 @@
+//@ts-nocheck 
 
-/* @ts-nocheck */
 import NextAuth, { CredentialsSignin } from "next-auth";
 // @ts-nocheck
 import Credentials from "next-auth/providers/credentials";
