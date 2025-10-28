@@ -5,6 +5,9 @@ import { encodedRedirect } from '@/utils/utils'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getUserRole } from '@/utils/get-role'
+import bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient();
 
 export const signUpAction = async (formData: FormData) => {
   const first_name = formData.get('first_name')?.toString()
@@ -19,6 +22,7 @@ export const signUpAction = async (formData: FormData) => {
   const confirm_password = formData.get('confirm_password')?.toString()
   const blood_type = formData.get('blood_type')?.toString()
   const emergency_contact = formData.get('emergency_contact')?.toString()
+  
 
   // const supabase = await createClient()
   // const origin = (await headers()).get('origin')
@@ -164,7 +168,7 @@ export const signInAction = async (formData: FormData) => {
 
   // const result = await getUserRole()
   const result = {
-    role: user.role//staffData?.staff_type || 'Patient',
+    role: user.role,//staffData?.staff_type || 'Patient',
     userId: user.id,
   }
 
@@ -187,70 +191,164 @@ export const signInAction = async (formData: FormData) => {
   return redirect('/')
 }
 
+
 export const forgotPasswordAction = async (formData: FormData) => {
-  const email = formData.get('email')?.toString()
-  const supabase = await createClient()
-  const origin = (await headers()).get('origin')
-  const callbackUrl = formData.get('callbackUrl')?.toString()
+  const email = formData.get('email')?.toString();
+  const prisma = new PrismaClient();
+  const origin = (await headers()).get('origin');
+  const callbackUrl = formData.get('callbackUrl')?.toString();
 
   if (!email) {
-    return encodedRedirect('error', '/forgot-password', 'Email is required')
+    return encodedRedirect('error', '/forgot-password', 'Email is required');
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?redirect_to=/reset-password`,
-  })
+  try {
+    // Generate a password reset token
+    const token = Math.random().toString(36).substr(2, 10);
+    const hashedToken = await bcrypt.hash(token, 10);
 
-  if (error) {
-    console.error(error.message)
+    // Update the user's password reset token
+    await prisma.user.update({
+      where: { email },
+      data: { passwordResetToken: hashedToken },
+    });
+
+    // Send the password reset email
+    // You would typically use a library like nodemailer or sendgrid to send emails
+    // For this example, we'll just log the token
+    console.log(`Password reset token: ${token}`);
+
+    if (callbackUrl) {
+      return redirect(callbackUrl);
+    }
+
     return encodedRedirect(
-      'error',
+      'success',
       '/forgot-password',
-      'Could not reset password',
-    )
+      'Check your email for a link to reset your password.',
+    );
+  } catch (error) {
+    console.error(error);
+    return encodedRedirect('error', '/forgot-password', 'Could not reset password');
   }
+};
 
-  if (callbackUrl) {
-    return redirect(callbackUrl)
-  }
 
-  return encodedRedirect(
-    'success',
-    '/forgot-password',
-    'Check your email for a link to reset your password.',
-  )
-}
 
 export const resetPasswordAction = async (formData: FormData) => {
-  const supabase = await createClient()
-  const password = formData.get('password') as string
-  const confirmPassword = formData.get('confirmPassword') as string
+  const prisma = new PrismaClient();
+  const password = formData.get('password') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
+  const token = formData.get('token') as string;
 
   if (!password || !confirmPassword) {
-    return encodedRedirect(
-      'error',
-      '/reset-password',
-      'Password and confirm password are required',
-    )
+    return encodedRedirect('error', '/reset-password', 'Password and confirm password are required');
   }
 
   if (password !== confirmPassword) {
-    return encodedRedirect('error', '/reset-password', 'Passwords do not match')
+    return encodedRedirect('error', '/reset-password', 'Passwords do not match');
   }
 
-  const { error } = await supabase.auth.updateUser({
-    password: password,
-  })
+  try {
+    // Find the user with the provided token
+    const user = await prisma.user.findFirst({
+      where: { passwordResetToken: token },
+    });
 
-  if (error) {
-    return encodedRedirect('error', '/reset-password', 'Password update failed')
+    if (!user) {
+      return encodedRedirect('error', '/reset-password', 'Invalid token');
+    }
+
+    // Update the user's password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword, passwordResetToken: null },
+    });
+
+    return encodedRedirect('success', '/reset-password', 'Password updated');
+  } catch (error) {
+    console.error(error);
+    return encodedRedirect('error', '/reset-password', 'Password update failed');
   }
+};
 
-  return encodedRedirect('success', '/reset-password', 'Password updated')
-}
+
 
 export const signOutAction = async () => {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  // const supabase = await createClient()
+  // await supabase.auth.signOut()
   return redirect('/sign-in')
 }
+
+
+
+
+
+
+
+
+
+
+
+// export const forgotPasswordAction = async (formData: FormData) => {
+//   const email = formData.get('email')?.toString()
+//   const supabase = await createClient()
+//   const origin = (await headers()).get('origin')
+//   const callbackUrl = formData.get('callbackUrl')?.toString()
+
+//   if (!email) {
+//     return encodedRedirect('error', '/forgot-password', 'Email is required')
+//   }
+
+//   const { error } = await supabase.auth.resetPasswordForEmail(email, {
+//     redirectTo: `${origin}/auth/callback?redirect_to=/reset-password`,
+//   })
+
+//   if (error) {
+//     console.error(error.message)
+//     return encodedRedirect(
+//       'error',
+//       '/forgot-password',
+//       'Could not reset password',
+//     )
+//   }
+
+//   if (callbackUrl) {
+//     return redirect(callbackUrl)
+//   }
+
+//   return encodedRedirect(
+//     'success',
+//     '/forgot-password',
+//     'Check your email for a link to reset your password.',
+//   )
+// }
+
+// export const resetPasswordAction = async (formData: FormData) => {
+//   const supabase = await createClient()
+//   const password = formData.get('password') as string
+//   const confirmPassword = formData.get('confirmPassword') as string
+
+//   if (!password || !confirmPassword) {
+//     return encodedRedirect(
+//       'error',
+//       '/reset-password',
+//       'Password and confirm password are required',
+//     )
+//   }
+
+//   if (password !== confirmPassword) {
+//     return encodedRedirect('error', '/reset-password', 'Passwords do not match')
+//   }
+
+//   const { error } = await supabase.auth.updateUser({
+//     password: password,
+//   })
+
+//   if (error) {
+//     return encodedRedirect('error', '/reset-password', 'Password update failed')
+//   }
+
+//   return encodedRedirect('success', '/reset-password', 'Password updated')
+// }
