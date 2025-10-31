@@ -25,7 +25,7 @@ export const signUpAction = async (formData: FormData) => {
   const emergency_contact = formData.get('emergency_contact')?.toString()
   
 
-  // const supabase = await createClient()
+  // const supabase = await createClient()  
   // const origin = (await headers()).get('origin')
   console.log(formData)
   if (
