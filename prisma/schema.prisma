@@ -33,8 +33,10 @@ model User {
   avatarUrl   String?
   phone_number  String?  @default("xxxx-xxx-xxxx")
   emergency_contact  String?  @default("xxxx-xxx-xxxx")
-  appointments  Appointment[]
-  admission   Admission[]
+  appointments  Appointment[] @relation("PatientAppointment")
+  admissions   Admission[] @relation("PatientAdmission")
+  staffAppointments  Appointment[] @relation("StaffAppointment")
+  staffAdmissions   Admission[] @relation("StaffAdmission")
   department  Department  @relation(fields: [department_id], references: [id])
   department_id   String     @db.ObjectId
   date_hired   DateTime?
@@ -79,6 +81,7 @@ model Department  {
   name     String   @unique
   description String?
   staffs  User[]
+  rooms   Room[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -147,6 +150,7 @@ model Room {
   name    String
   department    Department  @relation(fields: [departmenr_id], references: [id])
   departmenr_id   String    @db.ObjectId
+  admissions   Admission[]
   bed_space     Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime  @updatedAt
@@ -156,12 +160,12 @@ model Appointment {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
   visit_date    DateTime
   visit_status   String @default("Scheduled")
-  patient User @relation("Patient", fields: [patient_id], references: [id])
+  patient User @relation("PatientAppointment", fields: [patient_id], references: [id])
   patient_id      String    @db.ObjectId
   case    String?
   questions   String[]
   remarks     String[]
-  medical_staff       User    @relation(fields: [medical_staff_id], references: [id])
+  medical_staff       User    @relation("StaffAppointment", fields: [medical_staff_id], references: [id])
   medical_staff_id      String    @db.ObjectId
   createdAt   DateTime @default(now())
   updatedAt   DateTime  @updatedAt
@@ -174,9 +178,9 @@ model Admission {
   room      Room    @relation(fields: [room_id], references: [id])
   room_id   String    @db.ObjectId
   // visit_status   String @default("Scheduled")
-  patient     User    @relation(fields: [patient_id], references: [id])
+  patient User @relation("PatientAdmission", fields: [patient_id], references: [id])
   patient_id      String    @db.ObjectId
-  medical_staff       User    @relation(fields: [medical_staff_id], references: [id])
+  medical_staff       User    @relation("StaffAdmission", fields: [medical_staff_id], references: [id])
   medical_staff_id      String    @db.ObjectId
   createdAt   DateTime @default(now())
   updatedAt   DateTime  @updatedAt
