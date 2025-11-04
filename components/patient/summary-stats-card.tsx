@@ -34,7 +34,7 @@ export default function SummaryStatsCard({ appointments, billing }: Props) {
 
   return (
     <>
-      <Card>
+      <Card className='shadow-lg'>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">
             Upcoming Appointments

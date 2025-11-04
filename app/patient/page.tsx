@@ -199,23 +199,28 @@ export default function PatientDashboard() {
           </h1>
         </div>
       </header>
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <PatientInfoCard
-          patientProfile={mockpatientinfo}
-          //patientProfile={patientProfile }
-          refreshData={fetchData}
-        />
-        <AppointmentCalendarCard 
-          //appointments={appointments} 
-          appointments={mockappointments} 
-        />
-        <section className="hidden sm:grid gap-4 md:grid-cols-2 col-span-2">
-          <SummaryStatsCard appointments={mockappointments} billing={mockBilling} />
-        </section>
+      <section className="grid grid-cols-1 sm:grid-cols-2 /lg:grid-cols-3 gap-4 md:px-20 max-w-6xl mx-auto">
+        <div className='flex flex-col gap-3'>
+          <PatientInfoCard
+            patientProfile={mockpatientinfo}
+            //patientProfile={patientProfile }
+            refreshData={fetchData}
+          />
+          <AppointmentCalendarCard 
+            //appointments={appointments} 
+            appointments={mockappointments} 
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <section className="hidden sm:grid gap-4 md:grid-cols-2 col-span-2">
+            <SummaryStatsCard appointments={mockappointments} billing={mockBilling} />
+          </section>
+          <UpcomingAppointmentsTable appointments={appointments} />
+          <BillingSummaryTable billing={billing} appointments={appointments} />
+        </div>
       </section>
 
-      <UpcomingAppointmentsTable appointments={appointments} />
-      <BillingSummaryTable billing={billing} appointments={appointments} />
+      
     </div>
   )
 }

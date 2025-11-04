@@ -20,7 +20,7 @@ export const getGreeting = (hour: number = new Date().getHours()) => {
     'Hope you had a great day!',
     'Time to unwind!',
     'Evening vibes!',
-    'Relax, you’ve earned it!',
+    'Good evening',
   ]
 
   const randomIndex = (arr: string[]) => Math.floor(hour % arr.length)

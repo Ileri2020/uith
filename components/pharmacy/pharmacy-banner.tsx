@@ -8,7 +8,7 @@ export default function PharmacyBanner() {
         <div className="bg-blue-100 p-3 rounded-full mb-4">
           <Pill className="w-8 h-8 text-blue-600" />
         </div>
-        <h1 className="text-4xl font-bold text-blue-800 mb-4">
+        <h1 className="text-4xl text-center font-bold text-blue-800 mb-4">
           Pharmacy Management
         </h1>
         <div className="flex items-center gap-2 mt-1 bg-white/80 px-4 py-2 rounded-full shadow-sm">

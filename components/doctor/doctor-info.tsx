@@ -85,7 +85,7 @@ const DoctorInfoCard: React.FC<DoctorInfoCardProps> = ({ type }) => {
   }
 
   return (
-    <Card>
+    <Card className='bg-secondary shadow-lg'>
       <CardHeader>
         <CardTitle className="text-lg font-bold flex items-center gap-2">
           <User2 className="h-5 w-5 text-muted-foreground" />

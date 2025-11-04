@@ -60,7 +60,7 @@ export default function AppointmentCalendarCard({
   }
 
   return (
-    <Card className="lg:col-span-1">
+    <Card className="lg:col-span-1 bg-secondary shadow-lg">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <CalendarIcon className="h-4 w-4 text-muted-foreground" /> Appointment

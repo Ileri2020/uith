@@ -139,10 +139,10 @@ export default function PatientInfoCard({
 
   return (
     <>
-      <Card className="lg:col-span-1 relative">
+      <Card className="lg:col-span-1 relative bg-secondary shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <User2 className="h-5 w-5 text-muted-foreground" />
+            <User2 className="h-5 w-5 /text-muted-foreground text-accent" />
             {user ? `${user.first_name} ${user.last_name}` : 'John Doe'}
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">

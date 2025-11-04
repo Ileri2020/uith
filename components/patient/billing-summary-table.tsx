@@ -71,7 +71,7 @@ export default function BillingSummaryTable({ billing }: Props) {
   }
 
   return (
-    <Card className="lg:col-span-2 order-2 lg:order-none">
+    <Card className="lg:col-span-2 order-2 lg:order-none shadow-lg">
       <CardHeader>
         <CardTitle>Billing Summary</CardTitle>
         <CardDescription>Track your financial activity</CardDescription>

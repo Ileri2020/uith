@@ -156,7 +156,7 @@ const RoomAvailabilityTable: React.FC = () => {
     )
 
   return (
-    <Card>
+    <Card className='shadow-lg'>
       <CardHeader>
         <CardTitle className="text-lg font-bold flex items-center gap-2">
           <DoorOpen className="h-5 w-5 text-muted-foreground" />

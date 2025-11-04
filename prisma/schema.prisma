@@ -19,10 +19,11 @@ model User {
   date_of_birth     String?
   gender     String?
   national_id     String?
+  license_number     String?
   blood_type     String?
   email    String   @unique
   password String
-  role     String   @default("customer") //professional admin staff
+  role     String   @default("patient") //professional admin staff
   cart     Cart[]
   //orders   Order[]
   reviews  Review[]
@@ -32,6 +33,11 @@ model User {
   avatarUrl   String?
   phone_number  String?  @default("xxxx-xxx-xxxx")
   emergency_contact  String?  @default("xxxx-xxx-xxxx")
+  appointments  Appointment[]
+  admission   Admission[]
+  department  Department  @relation(fields: [department_id], references: [id])
+  department_id   String     @db.ObjectId
+  date_hired   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -60,10 +66,19 @@ model Notification {
 
 model Category {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String   @unique
+  name     String   @unique  //medicine, equipments, etc
   description String?
   //slug     String   @unique
   products Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department  {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String   @unique
+  description String?
+  staffs  User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -81,6 +96,7 @@ model Product {
   price    Float
   stock    Stock[]    //@relation(fields: [stockId], references: [id])
   //stockId  String?   @db.ObjectId
+  min_stock_level   Float
   reviews  Review[]
   cartItems CartItem[]
   Featured    FeaturedProduct?
@@ -124,6 +140,46 @@ model CartItem {
   quantity Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Room {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  department    Department  @relation(fields: [departmenr_id], references: [id])
+  departmenr_id   String    @db.ObjectId
+  bed_space     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Appointment {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  visit_date    DateTime
+  visit_status   String @default("Scheduled")
+  patient User @relation("Patient", fields: [patient_id], references: [id])
+  patient_id      String    @db.ObjectId
+  case    String?
+  questions   String[]
+  remarks     String[]
+  medical_staff       User    @relation(fields: [medical_staff_id], references: [id])
+  medical_staff_id      String    @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Admission {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  admission_date    DateTime
+  discharge_date    DateTime
+  room      Room    @relation(fields: [room_id], references: [id])
+  room_id   String    @db.ObjectId
+  // visit_status   String @default("Scheduled")
+  patient     User    @relation(fields: [patient_id], references: [id])
+  patient_id      String    @db.ObjectId
+  medical_staff       User    @relation(fields: [medical_staff_id], references: [id])
+  medical_staff_id      String    @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // model Order {

@@ -140,10 +140,12 @@ export default function PharmacyLanding() {
   }
 
   return (
-    <div className="min-h-screen">
-      <PharmacyBanner />
+    <div className="min-h-screen w-screen overflow-scroll mx-auto justify-center">
+      <div className="w-full flex justify-center">
+        <PharmacyBanner />
+      </div>
 
-      <main className="container p-4 md:p-6 space-y-8">
+      <main className="container p-4 md:p-6 space-y-8  max-w-6xl mx-auto">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>

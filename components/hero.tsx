@@ -18,6 +18,7 @@ export default function Hero() {
         <Link href={'/pharmacy'}><Button>Phamacy</Button></Link>
         {/* <Link href={'/admin'}><Button>Admin</Button></Link> */}
       </div>
+      <div>Announcement</div>
       <div className="flex justify-center gap-2">
         <Button asChild variant="secondary" size="lg">
           <Link href="/sign-in">Sign in</Link>

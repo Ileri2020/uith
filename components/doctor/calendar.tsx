@@ -11,7 +11,7 @@ import { CalendarDays } from 'lucide-react'
 
 const DoctorCalendar: React.FC = () => {
   return (
-    <Card>
+    <Card className='bg-secondary shadow-lg'>
       <CardHeader>
         <CardTitle className="text-lg font-bold flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-muted-foreground" />
