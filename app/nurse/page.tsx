@@ -5,12 +5,44 @@ import { PatientDetailsDialog } from '@/components/nurse/patient-details-dialog'
 import AssignedPatientsTable from '@/components/nurse/assigned-patients-table'
 import NurseInfoCard from '@/components/nurse/nurse-info'
 import { useAppContext } from '@/hooks/useAppContext'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function NurseDashboard() {
   const {user} = useAppContext()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<any>(null)
   const [nurseName, setNurseName] = useState<string>('')
+  const [formData, setFormData] = useState({
+      first_name: '',
+      last_name: '',
+      email: '',
+      password: '',
+      date_of_birth: '',
+      phone_number: '',
+      address: '',
+      national_id: '',
+      role: 'patient',
+    });
+  
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      try {
+        const response = await fetch('/api/dbhandler?model=user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        const data = await response.json();
+        console.log(data);
+        // Handle success or error
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
   const mockNurse = {
     staff_id: 101,
@@ -136,6 +168,36 @@ export default function NurseDashboard() {
           <div className="grid grid-cols-1 gap-6">
             <NurseInfoCard nurseobj={mockNurse} />
           </div>
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Create Patient Account</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label>First Name:</Label>
+                  <Input type="text" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} />
+                  <Label>Last Name:</Label>
+                  <Input type="text" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} />
+                  <Label>Email:</Label>
+                  <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                  <Label>Password:</Label>
+                  <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                  <Label>Date of Birth:</Label>
+                  <Input type="date" value={formData.date_of_birth} onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })} />
+                  <Label>Phone Number:</Label>
+                  <Input type="text" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} />
+                  <Label>Address:</Label>
+                  <Input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                  <Label>National ID:</Label>
+                  <Input type="text" value={formData.national_id} onChange={(e) => setFormData({ ...formData, national_id: e.target.value })} />
+                </div>
+                <CardFooter className="justify-end">
+                  <Button type="submit">Create Account</Button>
+                </CardFooter>
+              </form>
+            </CardContent>
+          </Card>
         </section>
 
         <PatientDetailsDialog

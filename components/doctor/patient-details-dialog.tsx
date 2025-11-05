@@ -15,6 +15,8 @@ import { FileText, Loader2, AlertCircle, User } from 'lucide-react'
 import AdmissionDetails from './admission-details'
 import PatientPersonalInfo from './patient-personal-info'
 import PatientMedicalRecords from './patient-medical-records'
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface MedicalRecord {
   record_id?: string
@@ -75,6 +77,7 @@ export function PatientDetailsDialog({
   const [patientInfo, setPatientInfo] = useState<Patient | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -133,9 +136,11 @@ export function PatientDetailsDialog({
       // Ensure doctor_id is a number as expected by PatientMedicalRecords
       doctor_id: typeof record.doctor_id === 'number' ? record.doctor_id : -1,
     })) ?? []
+    
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <div>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
@@ -224,5 +229,8 @@ export function PatientDetailsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    
+    </div>
   )
 }

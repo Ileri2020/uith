@@ -77,6 +77,8 @@ export default function DoctorDashboard() {
           </aside>
         </section>
 
+
+      {/* selected patient dialog, for questioning and diagnostic remarks */}
         <PatientDetailsDialog
           open={patientDetailsOpen}
           onOpenChange={setPatientDetailsOpen}
