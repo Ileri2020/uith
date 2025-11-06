@@ -1,16 +1,15 @@
-//@ts-nocheck 
 
+// @ts-nocheck
 import NextAuth, { CredentialsSignin } from "next-auth";
 // @ts-nocheck
 import Credentials from "next-auth/providers/credentials";
-import Github from "next-auth/providers/github";
+// import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 // import connectDB from "./lib/db";
 // import { User } from "./models/User";
 import bcrypt, { compare } from "bcryptjs";
 // import bcrypt, { compare } from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -66,13 +65,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const userData = {
           name: user.name,
-          // username: user.username,
+          username: user.username,
           email: user.email,
           contact: user.contact,
           role: user.role,
           avatarUrl: user.avatarUrl,
-          // department: user.department,
-          // sex: user.sex,
+          department: user.department,
+          sex: user.sex,
         };
 
         return userData;
@@ -85,8 +84,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   // },
 
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       if (token?.sub && token?.role) {
+        //add whatever else to session here
         session.user.id = token.sub;
         session.user.role = token.role;
       }
@@ -104,6 +104,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider === "google") {
         try {
           const { email, name, image, id } = user;
+          const avatarUrl = image?.replace(/=s\d+-c$/, "=s500-c") ?? image;
           // await connectDB();
           const alreadyUser = await prisma.user.findUnique({
             where: { email },
@@ -116,9 +117,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               data: {
                 email,
                 name,
-                avatarUrl : image,
+                avatarUrl : image.replace(/=s\d+(-c)?/, "=s250-c") ?? image,
                 // authProviderId: id,
-                password: await bcrypt.hash(id, 10), //process.env.SALT_ROUNDS
+                password: await bcrypt.hash(id, parseInt(process.env.SALT_ROUNDS)),
               },
             });
             
@@ -138,3 +139,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
+
+
+
+
+
+
+
+// signin user from 
+// google: {"id":"4bebdf1d-2753-4047-ab31-8a6a9db26d0c",
+//   "name":"Adepoju Ololade",
+//   "email":"adepojuololade2020@gmail.com",
+//   "image":"https://lh3.googleusercontent.com/a/ACg8ocLdrFmljf-SPXpYAl7HcdIPIVgBam0jRZ5YkySzCZW8zI7oIik2=s96-c"
+// }
+//  GET /api/auth/callback/google?code=4%2F0Ab32j90_a7v-5QU2RibG3S8IjethT361aaX-zs2MbKjnfg5ipPemiIGXQFosoJmCzXEtJg&scope=
+// email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email
+// +openid&authuser=0&prompt=consent 302 in 21974ms
