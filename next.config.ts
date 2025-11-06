@@ -2,16 +2,35 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Tell Next.js you’re using Turbopack (empty object silences the warning)
-  turbopack: {},
-
-  // ESLint settings
+  webpack: (config : any) => {
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'asset/resource',
+    });
+    return config;
+  },
+  /* config options here */
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // webpack5: false,
 
-  // Any other config you still need…
-  // experimental: { … }
+  // serverExternalPackages: ["mongoose"],
+
+  // experimental: {
+  //   // appDir: true,
+  //   esmExternals: "loose", // <-- add this
+  //   serverComponentsExternalPackages: ["mongoose"] // <-- and this
+  // },
+
+  // and the following to enable top-level await support for Webpack
+  // webpack: (config) => {
+  //   config.experiments = {
+  //     ...config.experiments,
+  //     topLevelAwait: true
+  //   };
+  //   return config;
+  // },
 };
 
 export default nextConfig;
