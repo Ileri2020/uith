@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from '@/components/ui/input'
 import axios from 'axios'
 
-const Signup = () => {
+export const Signup = () => {
   
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
