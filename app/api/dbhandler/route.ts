@@ -1,404 +1,183 @@
-"use server"
-import { PrismaClient } from '@prisma/client';
-import { NextRequest } from 'next/server';
-import bcrypt from 'bcrypt';
+"use server";
+import { PrismaClient, Prisma } from "@prisma/client";
+import { NextRequest } from "next/server";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
+// Define allowed model names
+type ModelName =
+  | "cart"
+  | "cartItem"
+  | "category"
+  | "coupon"
+  | "featuredProduct"
+  | "notification"
+  | "payment"
+  | "post"
+  | "product"
+  | "refund"
+  | "review"
+  | "shippingAddress"
+  | "stock"
+  | "user";
 
+const modelMap: Record<ModelName, any> = {
+  cart: prisma.cart,
+  cartItem: prisma.cartItem,
+  category: prisma.category,
+  coupon: prisma.coupon,
+  featuredProduct: prisma.featuredProduct,
+  notification: prisma.notification,
+  payment: prisma.payment,
+  post: prisma.post,
+  product: prisma.product,
+  refund: prisma.refund,
+  review: prisma.review,
+  shippingAddress: prisma.shippingAddress,
+  stock: prisma.stock,
+  user: prisma.user,
+};
 
+// Utility to safely get Prisma model
+function getModel(name: string | null) {
+  if (!name || !(name in modelMap)) return null;
+  return modelMap[name as ModelName];
+}
+
+// Helper for consistent JSON responses
+function jsonResponse(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// ✅ GET
 export async function GET(req: NextRequest) {
-
   const { searchParams } = new URL(req.url);
-  
-  // Destructure and provide defaults
-  const model = searchParams.get('model') || null;
-  const id = searchParams.get('id') || null;
-  const body = searchParams.get('body') || null;
+  const modelName = searchParams.get("model");
+  const idParam = searchParams.get("id");
 
-  const { method } = req; 
-  console.log("in db handler",model, id, method, body)
+  const prismaModel = getModel(modelName);
+  if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
-
-  const modelMap = {
-    //ministries: prisma.ministry,
-    cart: prisma.cart,
-    cartItem: prisma.cartItem,
-    category: prisma.category,
-    coupon: prisma.coupon,
-    featuredProduct: prisma.featuredProduct,
-    notification: prisma.notification,
-    payment: prisma.payment,
-    post: prisma.post,
-    product: prisma.product,
-    refund: prisma.refund,
-    review: prisma.review,
-    shippingAddress: prisma.shippingAddress,
-    stock: prisma.stock,
-    user: prisma.user,
-  };
-
-  const prismaModel = modelMap[model];
-
-  if (!prismaModel) {
-    console.log("in prisma model check function")
-    return new Response(JSON.stringify({message : "invalid model"}), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  
-  if (id == null){
-
-
-    if (model === 'review' || model === 'post')  {
-      try {
+  try {
+    if (!idParam) {
+      // Handle review/post relations
+      if (modelName === "review" || modelName === "post") {
         const items = await prismaModel.findMany();
-        const userIds = items.map(item => item.userId);
+        const userIds = items.map((i: any) => i.userId);
         const users = await prisma.user.findMany({
-          where: {
-            id: { in: userIds },
-          },
-          select: {
-            id: true,
-            email: true,
-            //username: true,
-            name: true,
-            avatarUrl: true,
-          },
+          where: { id: { in: userIds } },
+          select: { id: true, email: true, name: true, avatarUrl: true },
         });
 
-        const result = items.map(item => {
-          const user = users.find(user => user.id === item.userId);
-          return { ...item, user };
-        });
+        const result = items.map((item: any) => ({
+          ...item,
+          user: users.find((u:any) => u.id === item.userId),
+        }));
 
-        return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' }, });
-      } catch (error) {
-        console.error('Database error:', error);
-        return new Response(JSON.stringify({ message: 'Database error' }), { status: 500, headers: { 'Content-Type': 'application/json' }, });
+        return jsonResponse(result);
       }
-    }
-  
 
-    
-    try {
       const items = await prismaModel.findMany();
-      return new Response(JSON.stringify(items), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+      return jsonResponse(items);
+    }
+
+    // If idParam exists
+    if (modelName === "review") {
+      const items = await prismaModel.findMany({
+        where: { contentId: idParam },
       });
-    } catch (error) {
-      console.error('Database error:', error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch items' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-  }else{
-    if(model === "review"){
-      try {
-        const item = await prismaModel.findMany({
-          where: {
-            contentId: id,
-          },
-        });
-        
-        // if (!item) return new Response(
-        //   JSON.stringify({ error: 'Document not found' }),
-        //   { status: 405, headers: { 'Content-Type': 'application/json' } }
-        // );
-        console.log(item)
-        return new Response(JSON.stringify(item), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (error) {
-        console.error('Database error:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch items' }),
-          { status: 405, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+      return jsonResponse(items);
     }
 
+    const item = await prismaModel.findUnique({
+      where: { id: idParam },
+    });
 
-    try {
-        const item = await prismaModel.findUnique({
-          where: { id },
-        });
-
-        if (!item) return new Response(
-          JSON.stringify({ error: 'Document not found' }),
-          { status: 405, headers: { 'Content-Type': 'application/json' } }
-        );
-
-        return new Response(JSON.stringify(item), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (error) {
-        console.error('Database error:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch items' }),
-          { status: 405, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+    if (!item) return jsonResponse({ error: "Document not found" }, 404);
+    return jsonResponse(item);
+  } catch (error) {
+    console.error("Database error:", error);
+    return jsonResponse({ error: "Failed to fetch items" }, 500);
   }
 }
 
-
-
+// ✅ POST
 export async function POST(req: NextRequest) {
-
   const { searchParams } = new URL(req.url);
-  // const formData = await req.formData
-  // const file = formData.
-  
-  // Destructure and provide defaults
-  const model = searchParams.get('model') || null;
-  const id = searchParams.get('id') || null;
-  // const body = searchParams.get('body') || null;
+  const modelName = searchParams.get("model");
+  const prismaModel = getModel(modelName);
+  if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
-  // Parse JSON body
-  let body = null;
+  let body: any;
   try {
-    body = await req.json(); // This reads the JSON payload
-  } catch (err) {
-    return new Response('Invalid JSON', { status: 400 });
+    body = await req.json();
+  } catch {
+    return jsonResponse({ message: "Invalid JSON" }, 400);
   }
 
-  const { method } = req; 
-  console.log("in db handler",model, id, method, body)
-
-
-  const modelMap = {
-    //ministries: prisma.ministry,
-    cart: prisma.cart,
-    cartItem: prisma.cartItem,
-    category: prisma.category,
-    coupon: prisma.coupon,
-    featuredProduct: prisma.featuredProduct,
-    notification: prisma.notification,
-    payment: prisma.payment,
-    post: prisma.post,
-    product: prisma.product,
-    refund: prisma.refund,
-    review: prisma.review,
-    shippingAddress: prisma.shippingAddress,
-    stock: prisma.stock,
-    user: prisma.user,
-  };
-
-  const prismaModel = modelMap[model];
-
-  if (!prismaModel) {
-    console.log("in prisma model check function")
-    return new Response(JSON.stringify({message : "invalid model"}), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  
   try {
-    const data = body;
-
-
-    if (model === 'user') {
-      try {
-        const hashedPassword = await bcrypt.hash(data.password, parseInt(process.env.SALT_ROUNDS));
-        data.password = hashedPassword;
-        console.log("hashed password", hashedPassword)
-      } catch (error) {
-        console.error('Error hashing password:', error);
-        return new Response(JSON.stringify({ message: 'Error hashing password' }), { status: 500, headers: { 'Content-Type': 'application/json' }, });
-      }
+    if (modelName === "user") {
+      const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
+      const hashedPassword = await bcrypt.hash(body.password, saltRounds);
+      body.password = hashedPassword;
     }
-    
-    
 
-
-    console.log("form body:", data)
-    const newItem = await prismaModel.create({
-      data,
-    });
-
-    return new Response(JSON.stringify(newItem), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const newItem = await prismaModel.create({ data: body });
+    return jsonResponse(newItem, 201);
   } catch (error) {
-    console.error('Database error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to POST items' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    console.error("Database error:", error);
+    return jsonResponse({ error: "Failed to create item" }, 500);
   }
-
 }
 
-
-
-
+// ✅ PUT
 export async function PUT(req: NextRequest) {
-
   const { searchParams } = new URL(req.url);
-  
-    // Destructure and provide defaults
-    const model = searchParams.get('model') || null;
-    const id = searchParams.get('id') || null;
-    // const body = searchParams.get('body') || null;
-  
-    // Parse JSON body
-    let body = null;
-    try {
-      body = await req.json(); // This reads the JSON payload
-    } catch (err) {
-      return new Response('Invalid JSON', { status: 400 });
-    }
+  const modelName = searchParams.get("model");
+  const prismaModel = getModel(modelName);
+  if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
-  const { method } = req; 
-  console.log("in db handler",model, id, method, body)
-
-
-  const modelMap = {
-    //ministries: prisma.ministry,
-    cart: prisma.cart,
-    cartItem: prisma.cartItem,
-    category: prisma.category,
-    coupon: prisma.coupon,
-    featuredProduct: prisma.featuredProduct,
-    notification: prisma.notification,
-    payment: prisma.payment,
-    post: prisma.post,
-    product: prisma.product,
-    refund: prisma.refund,
-    review: prisma.review,
-    shippingAddress: prisma.shippingAddress,
-    stock: prisma.stock,
-    user: prisma.user,
-  };
-
-  const prismaModel = modelMap[model];
-
-  if (!prismaModel) {
-    console.log("in prisma model check function")
-    return new Response(JSON.stringify({message : "invalid model"}), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-    // ✏️ Update Object
+  let body: any;
   try {
-    const { id, ...updatedata } = body;
-    console.log("id removed from :", updatedata)
-    const updatedItem = await prismaModel.update({
-      where: {id},
-      data: updatedata,
-    });
-
-    return new Response(JSON.stringify(updatedItem), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Database update error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to UPDAT/PUT item' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    body = await req.json();
+  } catch {
+    return jsonResponse({ message: "Invalid JSON" }, 400);
   }
 
-}
+  const { id, ...updateData } = body;
+  if (!id) return jsonResponse({ message: "Missing id" }, 400);
 
-
-
-
-export async function DELETE(req: NextRequest) {
-
-  const { searchParams } = new URL(req.url);
-  
-  // Destructure and provide defaults
-  const model = searchParams.get('model') || null;
-  const id = searchParams.get('id') || null;
-  console.log("in db handler",model, id)
-
-
-  const modelMap = {
-    //ministries: prisma.ministry,
-    cart: prisma.cart,
-    cartItem: prisma.cartItem,
-    category: prisma.category,
-    coupon: prisma.coupon,
-    featuredProduct: prisma.featuredProduct,
-    notification: prisma.notification,
-    payment: prisma.payment,
-    post: prisma.post,
-    product: prisma.product,
-    refund: prisma.refund,
-    review: prisma.review,
-    shippingAddress: prisma.shippingAddress,
-    stock: prisma.stock,
-    user: prisma.user,
-  };
-
-  const prismaModel = modelMap[model];
-
-  if (!prismaModel) {
-    console.log("in prisma model check function")
-    return new Response(JSON.stringify({message : "invalid model"}), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-    // ❌ Delete Object
   try {
-    await prismaModel.delete({
+    const updated = await prismaModel.update({
       where: { id },
+      data: updateData,
     });
-    return new Response(JSON.stringify({success : true}), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(updated);
   } catch (error) {
-    console.error('Database DELETE error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to DELETE items' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    console.error("Database update error:", error);
+    return jsonResponse({ error: "Failed to update item" }, 500);
   }
 }
 
+// ✅ DELETE
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const modelName = searchParams.get("model");
+  const idParam = searchParams.get("id");
 
+  const prismaModel = getModel(modelName);
+  if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
+  if (!idParam) return jsonResponse({ message: "Missing id" }, 400);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  try {
+    await prismaModel.delete({ where: { id: idParam } });
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error("Database DELETE error:", error);
+    return jsonResponse({ error: "Failed to delete item" }, 500);
+  }
+}
