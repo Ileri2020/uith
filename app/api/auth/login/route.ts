@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use server"
 import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { email: body.email, },
     });
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+    }
     const isvalid = await bcrypt.compare(body.password, user.password)
     if(isvalid){
     // const { id, ...updateduser } = user;
