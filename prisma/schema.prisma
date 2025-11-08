@@ -3,6 +3,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "./prisma"   // <-- puts the generated client in ./prisma
+  // optional: if you want the “client‑only” engine (no Rust binaries)
+  // engineType = "client"
 }
 
 datasource db {
