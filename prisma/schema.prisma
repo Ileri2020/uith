@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "./prisma"   // <-- puts the generated client in ./prisma
+  output   = "./prismaclient"   // <-- puts the generated client in ./prisma
   // optional: if you want the “client‑only” engine (no Rust binaries)
   // engineType = "client"
   engineType = "binary"      // 👈 adds PRISMA_QUERY_ENGINE_TYPE='binary'
