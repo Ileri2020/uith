@@ -8,7 +8,7 @@ import Google from "next-auth/providers/google";
 // import connectDB from "./lib/db";
 // import { User } from "./models/User";
 import bcrypt, { compare } from "bcryptjs";
-import { PrismaClient } from "./prisma/prismaclient/client";
+import { PrismaClient } from "./prisma/prismaclient";
 // import bcrypt, { compare } from 'bcrypt';
 const prisma = new PrismaClient();
 
