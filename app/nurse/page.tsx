@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { PatientTable } from '@/components/nurse/patients-table'
+import { BookingDialog } from '@/components/nurse/appointment-booking'
 
 export default function NurseDashboard() {
   const {user} = useAppContext()
@@ -162,6 +164,8 @@ export default function NurseDashboard() {
         </header>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <PatientTable />
+          <BookingDialog />
           <div className="lg:col-span-2 grid grid-cols-1 gap-6">
             <AssignedPatientsTable admissionslst={mockAdmissions} onRowClick={handleRowClick} />
           </div>
@@ -209,3 +213,100 @@ export default function NurseDashboard() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -3,7 +3,10 @@ import { BiPhoneCall, BiSolidContact, BiPhone,} from "react-icons/bi"
 import { CiShoppingCart, } from "react-icons/ci"
 import { IoMdHelp } from "react-icons/io";
 import { VscAccount } from "react-icons/vsc";
-import { IoFastFoodOutline } from "react-icons/io5";
+import { MdOutlineLocalPharmacy, MdMedicationLiquid } from "react-icons/md";
+import {FaUserDoctor, FaUserNurse, } from "react-icons/fa6";
+import {FaHospitalUser } from "react-icons/fa";
+import {FcAbout } from "react-icons/fc";
 
 
 
@@ -14,8 +17,8 @@ export default {Links : [
       path: "/",
     },
     {
-      name: <AiOutlineShop />,
-      path: "/store",
+      name: <MdMedicationLiquid />,
+      path: "/pharmacy",
     },
     // {
     //   name: <IoMdHelp />,
@@ -26,12 +29,24 @@ export default {Links : [
     //   path: "/lunch",
     // },
     {
-      name: <AiOutlineHistory />,
+      name: <FcAbout />,
       path: "/about",
     },
     {
       name: <BiPhone />,
       path: "/contact",
+    },
+    {
+      name: <FaHospitalUser />,
+      path: "/patient",
+    },
+    {
+      name: <FaUserNurse />,
+      path: "/nurse",
+    },
+    {
+      name: <FaUserDoctor />,
+      path: "/doctor",
     },
     {
       name: <VscAccount />,

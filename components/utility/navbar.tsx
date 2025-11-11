@@ -19,7 +19,7 @@ const Navbar = () => {
   return (
     <div className="w-screen overflow-clip flex flex-col m-0 p-0 relative">
       <header className="w-screen py-4 bg-background sticky top-0 z-10">
-        <div className="container mx-auto flex justify-between items-center h-[50px] overflow-clip">
+        <div className="container mx-auto flex justify-between items-center h-[50px] overflow-clip shadow-lg">
             <div className="lg:hidden">
               <Sidenav />
             </div>

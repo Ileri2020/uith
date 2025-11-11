@@ -1,12 +1,12 @@
 // @ts-nocheck
 "use server";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { NextRequest } from "next/server";
 import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-// Define allowed model names
+// --- 1️⃣ Extend the allowed model names -------------------------------------------------
 type ModelName =
   | "cart"
   | "cartItem"
@@ -21,8 +21,18 @@ type ModelName =
   | "review"
   | "shippingAddress"
   | "stock"
-  | "user";
+  | "user"
+  | "form"
+  | "conversation"
+  | "message"
+  | "appointment"
+  | "admission"
+  | "room"
+  | "department"
+  | "post"
+  | "notification";
 
+// --- 2️⃣ Map every model to its Prisma client property -------------------------------
 const modelMap: Record<ModelName, any> = {
   cart: prisma.cart,
   cartItem: prisma.cartItem,
@@ -38,34 +48,43 @@ const modelMap: Record<ModelName, any> = {
   shippingAddress: prisma.shippingAddress,
   stock: prisma.stock,
   user: prisma.user,
+  form: prisma.form,
+  conversation: prisma.conversation,
+  message: prisma.message,
+  appointment: prisma.appointment,
+  admission: prisma.admission,
+  room: prisma.room,
+  department: prisma.department,
 };
 
-// Utility to safely get Prisma model
+// --- 3️⃣ Helper to get the correct Prisma model ---------------------------------------
 function getModel(name: string | null) {
   if (!name || !(name in modelMap)) return null;
   return modelMap[name as ModelName];
 }
 
-// Helper for consistent JSON responses
+// --- 4️⃣ JSON response helper ---------------------------------------------------------
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 }
 
-// ✅ GET
+// --- 5️⃣ GET ---------------------------------------------------------------------------
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const idParam = searchParams.get("id");
-
   const prismaModel = getModel(modelName);
+
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
   try {
     if (!idParam) {
-      // Handle review/post relations
+      // Special handling for models that need a user join
       if (modelName === "review" || modelName === "post") {
         const items = await prismaModel.findMany();
         const userIds = items.map((i: any) => i.userId);
@@ -73,12 +92,10 @@ export async function GET(req: NextRequest) {
           where: { id: { in: userIds } },
           select: { id: true, email: true, name: true, avatarUrl: true },
         });
-
         const result = items.map((item: any) => ({
           ...item,
-          user: users.find((u:any) => u.id === item.userId),
+          user: users.find((u: any) => u.id === item.userId),
         }));
-
         return jsonResponse(result);
       }
 
@@ -106,11 +123,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ✅ POST
+// --- 6️⃣ POST --------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const prismaModel = getModel(modelName);
+
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
   let body: any;
@@ -135,11 +153,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ PUT
+// --- 7️⃣ PUT ---------------------------------------------------------------------------
 export async function PUT(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const prismaModel = getModel(modelName);
+
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
   let body: any;
@@ -164,13 +183,13 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// ✅ DELETE
+// --- 8️⃣ DELETE -------------------------------------------------------------------------
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const idParam = searchParams.get("id");
-
   const prismaModel = getModel(modelName);
+
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
   if (!idParam) return jsonResponse({ message: "Missing id" }, 400);
 

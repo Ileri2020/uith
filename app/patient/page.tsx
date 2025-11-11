@@ -199,6 +199,7 @@ export default function PatientDashboard() {
           </h1>
         </div>
       </header>
+      <FormListTable />
       <section className="grid grid-cols-1 sm:grid-cols-2 /lg:grid-cols-3 gap-4 md:px-20 max-w-6xl mx-auto">
         <div className='flex flex-col gap-3'>
           <PatientInfoCard
@@ -221,6 +222,200 @@ export default function PatientDashboard() {
       </section>
 
       
+    </div>
+  )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ColumnDef, SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, ColumnFiltersState, VisibilityState, RowSelectionState } from '@tanstack/react-table'
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { toast } from '@/hooks/use-toast'
+
+type Form = {
+  id: string
+  title: string
+  owner: { first_name: string; last_name: string } | null
+  fields: Record<string, any>
+  createdAt: string
+}
+
+export const columns: ColumnDef<Form>[] = [
+  { id: 'select', header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />, cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />, enableSorting: false, enableHiding: false },
+  { accessorKey: 'title', header: 'Form Name' },
+  { accessorKey: 'owner', header: 'Created By', cell: ({ row }) => `${row.original.owner?.first_name ?? ''} ${row.original.owner?.last_name ?? ''}` },
+  { accessorKey: 'createdAt', header: ({ column }) => <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>Created <ArrowUpDown className="ml-2 h-4 w-4" /></Button>, cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString() },
+  { id: 'actions', enableHiding: false, cell: ({ row }) => <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original.id)}>Copy ID</DropdownMenuItem></DropdownMenuContent></DropdownMenu> },
+]
+
+export const FormListTable = () => {
+  const [data, setData] = React.useState<Form[]>([])
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+  const [selectedForm, setSelectedForm] = React.useState<Form | null>(null)
+
+  // fetch all forms on mount
+  React.useEffect(() => {
+    async function loadForms() {
+      try {
+        const res = await fetch('/api/generic?model=form')
+        const json = await res.json()
+        setData(json)
+      } catch {
+        toast({ title: 'Failed to load forms' })
+      }
+    }
+    loadForms()
+  }, [])
+
+  const table = useReactTable({
+    data,
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
+  })
+
+  // when a row is selected, show the fill‑form UI
+  React.useEffect(() => {
+    const selectedIds = Object.keys(rowSelection)
+    if (selectedIds.length === 1) {
+      const form = data.find(f => f.id === selectedIds[0])
+      setSelectedForm(form ?? null)
+    } else {
+      setSelectedForm(null)
+    }
+  }, [rowSelection, data])
+
+  const handleSubmit = async (values: Record<string, any>) => {
+    if (!selectedForm) return
+    try {
+      const res = await fetch(`/api/generic?model=form&id=${selectedForm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { ...selectedForm.fields, ...values } }),
+      })
+      if (res.ok) {
+        toast({ title: 'Response saved!' })
+        setRowSelection({})
+        setSelectedForm(null)
+      } else {
+        const data = await res.json()
+        toast({ title: data.error || 'Save failed' })
+      }
+    } catch {
+      toast({ title: 'Network error' })
+    }
+  }
+
+  return (
+    <div className="w-full">
+      {selectedForm ? (
+        <div className="p-4 border rounded mb-4">
+          <h3 className="font-bold mb-2">{selectedForm.title}</h3>
+          <form onSubmit={e => { e.preventDefault(); handleSubmit({}) }} className="space-y-4">
+            {Object.entries(selectedForm.fields).map(([key, val]) => (
+              <div key={key}>
+                <label className="block text-sm font-medium">{key}</label>
+                <Input defaultValue={val as string} name={key} />
+              </div>
+            ))}
+            <Button type="submit">Submit</Button>
+            <Button variant="ghost" onClick={() => setRowSelection({})}>Cancel</Button>
+          </form>
+        </div>
+      ) : null}
+
+      <div className="flex items-center py-4">
+        <Input placeholder="Filter forms..." value={(table.getColumn('title')?.getFilterValue() as string) ?? ''} onChange={event => table.getColumn('title')?.setFilterValue(event.target.value)} className="max-w-sm" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table.getAllColumns().filter(col => col.getCanHide()).map(col => (
+              <DropdownMenuCheckboxItem key={col.id} checked={col.getIsVisible()} onCheckedChange={value => col.toggleVisibility(!!value)}>
+                {col.id}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : header.column.columnDef.header}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length ? table.getRowModel().rows.map(row => (
+              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} onClick={() => row.toggleSelected()}>
+                {row.getVisibleCells().map(cell => (
+                  <TableCell key={cell.id}>
+                    {cell.column.columnDef.cell ? cell.column.columnDef.cell({ ...cell.getContext(), row }) : null}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No forms found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+      </div>
     </div>
   )
 }

@@ -140,12 +140,12 @@ export default function PharmacyLanding() {
   }
 
   return (
-    <div className="min-h-screen w-screen overflow-scroll mx-auto justify-center">
-      <div className="w-full flex justify-center">
+    <div className="min-h-screen w-full /overflow-scroll overflow-clip mx-auto justify-center /bg-red-400">
+      <div className="w-full flex justify-center mx-auto">
         <PharmacyBanner />
       </div>
 
-      <main className="container p-4 md:p-6 space-y-8  max-w-6xl mx-auto">
+      <main className="container p-1 md:p-6 space-y-8  max-w-6xl mx-auto">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -219,7 +219,7 @@ export default function PharmacyLanding() {
           </Card>
         </div>
 
-        <Tabs defaultValue="in-stock" className="space-y-4">
+        <Tabs defaultValue="in-stock" className="space-y-4 max-w-full overflow-scroll">
           <div className="flex justify-between items-center">
             <TabsList>
               <TabsTrigger value="in-stock">In Stock</TabsTrigger>

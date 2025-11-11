@@ -1,6 +1,6 @@
 "use client"
 import { motion } from "framer-motion"
-import {Signup} from "@/components/myComponents/subs/signup"
+import Signup from "@/components/myComponents/subs/signup"
 import EditUser from "@/components/myComponents/subs/useredit"
 import dynamic from 'next/dynamic'
 import Login from '@/components/myComponents/subs/login'
