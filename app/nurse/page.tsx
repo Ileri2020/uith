@@ -41,6 +41,22 @@ export default function NurseDashboard() {
         const data = await response.json();
         console.log(data);
         // Handle success or error
+        if (response.ok) {
+          alert('Patient account created successfully!');
+          setFormData({
+            first_name: '',
+            last_name: '',
+            email: '',
+            password: '',
+            date_of_birth: '',
+            phone_number: '',
+            address: '',
+            national_id: '',
+            role: 'patient',
+          });
+        } else {
+          alert('Error creating patient account: ' + data.message);
+        }
       } catch (error) {
         console.error(error);
       }

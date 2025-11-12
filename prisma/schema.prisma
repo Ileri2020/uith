@@ -65,6 +65,7 @@ model Form {
   owner         User          @relation("FormOwner", fields: [ownerId], references: [id])
   fields        Json?         // free‑form data
   conversations Conversation[] @relation("FormConversations")
+  appointments Appointment[] @relation("Appointmentforms")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -217,6 +218,8 @@ model Appointment {
   payment_status String @default("unpaid") // e.g., "paid", "unpaid", "refunded"
   admission_id  String? @db.ObjectId // optional link to an Admission record
   admission    Admission? @relation("AppointmentAdmission", fields: [admission_id], references: [id])
+  form_id String? @db.ObjectId // optional, if you want a direct reference
+  form      Form?     @relation("Appointmentforms", fields: [form_id], references: [id])
   
 
   createdAt     DateTime @default(now())

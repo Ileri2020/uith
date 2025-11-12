@@ -175,7 +175,7 @@ const CreateFormButton = () => {
         fields[`question_${i + 1}`] = q
       })
 
-      const res = await fetch(`/api/generic?model=form`, {
+      const res = await fetch(`/api/dbhandler?model=form`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +201,7 @@ const CreateFormButton = () => {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-full max-w-md mx-auto my-2">
       {isCreating ? (
         <div className="space-y-4">
           <div className="flex gap-2">
