@@ -49,6 +49,8 @@ export function BookingDialog({ open, onOpenChange, patient }: Props) {
   const [selectedForm, setSelectedForm] = React.useState<string>()
   const [visitDate, setVisitDate] = React.useState<string>('')
 
+  console.log('BookingDialog patient:', patient)  
+
   // load doctors & forms once the dialog is shown
   React.useEffect(() => {
     if (!open) return

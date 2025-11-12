@@ -165,7 +165,6 @@ export default function NurseDashboard() {
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           <PatientTable />
-          <BookingDialog />
           <div className="lg:col-span-2 grid grid-cols-1 gap-6">
             <AssignedPatientsTable admissionslst={mockAdmissions} onRowClick={handleRowClick} />
           </div>

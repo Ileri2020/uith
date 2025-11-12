@@ -10,9 +10,11 @@ datasource db {
 
 /* ------------------- enums ------------------- */
 enum Role {
-  PATIENT
-  DOCTOR
-  ADMIN
+  patient
+  doctor
+  nurse
+  pharmacist
+  admin
 }
 
 /* ------------------- core models ------------------- */
@@ -27,12 +29,12 @@ model User {
   blood_type      String?
   email           String    @unique
   password        String?
-  role            Role      @default(PATIENT)
+  role            Role      @default(patient)
   avatarUrl       String?
   phone_number    String?   @default("xxxx-xxx-xxxx")
   emergency_contact String? @default("xxxx-xxx-xxxx")
-  department      Department @relation(fields: [department_id], references: [id])
-  department_id   String    @db.ObjectId
+  department      Department? @relation(fields: [department_id], references: [id])
+  department_id   String?    @db.ObjectId
   date_hired      DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -46,7 +48,7 @@ model User {
   // other existing relations
   cart            Cart[]
   reviews         Review[]
-  address         ShippingAddress[]
+  address         String?  //ShippingAddress[]
   post            Post[]
   notification    Notification[]
   appointments    Appointment[] @relation("PatientAppointment")
@@ -255,19 +257,19 @@ model Coupon {
   updatedAt DateTime @updatedAt
 }
 
-model ShippingAddress {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  address   String?
-  city      String?
-  state     String?
-  zip       String?
-  country   String?
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// model ShippingAddress {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   userId    String   @db.ObjectId
+//   user      User     @relation(fields: [userId], references: [id])
+//   address   String?
+//   city      String?
+//   state     String?
+//   zip       String?
+//   country   String?
+//   phone     String?
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
 
 model Refund {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId

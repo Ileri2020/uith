@@ -75,51 +75,67 @@ function jsonResponse(data: any, status = 200) {
 
 // --- 5️⃣ GET ---------------------------------------------------------------------------
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const modelName = searchParams.get("model");
-  const idParam = searchParams.get("id");
-  const prismaModel = getModel(modelName);
+  const { searchParams } = new URL(req.url)
+  const modelName = searchParams.get('model')
+  const idParam = searchParams.get('id')
+  const role = searchParams.get('role')
+  const orderBy = searchParams.get('orderBy')
+  const orderDir = searchParams.get('orderDir')?.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-  if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
+  const prismaModel = getModel(modelName)
+  if (!prismaModel) return jsonResponse({ message: 'Invalid model' }, 400)
 
   try {
     if (!idParam) {
+      // Build the where clause
+      const where: any = {}
+      if (role) where.role = role
+
+      // Build the orderBy clause
+      const orderByClause: any = {}
+      if (orderBy) orderByClause[orderBy] = orderDir || 'desc'
+
       // Special handling for models that need a user join
-      if (modelName === "review" || modelName === "post") {
-        const items = await prismaModel.findMany();
-        const userIds = items.map((i: any) => i.userId);
+      if (modelName === 'review' || modelName === 'post') {
+        const items = await prismaModel.findMany({
+          where,
+          orderBy: orderByClause,
+        })
+        const userIds = items.map((i: any) => i.userId)
         const users = await prisma.user.findMany({
           where: { id: { in: userIds } },
           select: { id: true, email: true, name: true, avatarUrl: true },
-        });
+        })
         const result = items.map((item: any) => ({
           ...item,
           user: users.find((u: any) => u.id === item.userId),
-        }));
-        return jsonResponse(result);
+        }))
+        return jsonResponse(result)
       }
 
-      const items = await prismaModel.findMany();
-      return jsonResponse(items);
+      const items = await prismaModel.findMany({
+        where,
+        orderBy: orderByClause,
+      })
+      return jsonResponse(items)
     }
 
     // If idParam exists
-    if (modelName === "review") {
+    if (modelName === 'review') {
       const items = await prismaModel.findMany({
         where: { contentId: idParam },
-      });
-      return jsonResponse(items);
+      })
+      return jsonResponse(items)
     }
 
     const item = await prismaModel.findUnique({
       where: { id: idParam },
-    });
-
-    if (!item) return jsonResponse({ error: "Document not found" }, 404);
-    return jsonResponse(item);
+    })
+    if (!item) return jsonResponse({ error: 'Document not found' }, 404)
+    return jsonResponse(item)
   } catch (error) {
-    console.error("Database error:", error);
-    return jsonResponse({ error: "Failed to fetch items" }, 500);
+    console.error('Database error:', error)
+    return jsonResponse({ error: 'Failed to fetch items' }, 500)
   }
 }
 

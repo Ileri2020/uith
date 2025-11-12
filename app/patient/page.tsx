@@ -250,7 +250,7 @@ export default function PatientDashboard() {
 
 
 
-import { ColumnDef, SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, ColumnFiltersState, VisibilityState, RowSelectionState } from '@tanstack/react-table'
+import { ColumnDef, SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, ColumnFiltersState, VisibilityState, RowSelectionState, flexRender } from '@tanstack/react-table'
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -386,7 +386,8 @@ export const FormListTable = () => {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : header.column.columnDef.header}
+                    {/* {header.isPlaceholder ? null : header.column.columnDef.header} */}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -397,7 +398,8 @@ export const FormListTable = () => {
               <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} onClick={() => row.toggleSelected()}>
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id}>
-                    {cell.column.columnDef.cell ? cell.column.columnDef.cell({ ...cell.getContext(), row }) : null}
+                    {/* {cell.column.columnDef.cell ? cell.column.columnDef.cell({ ...cell.getContext(), row }) : null} */}
+                    {cell.column.columnDef.cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null}
                   </TableCell>
                 ))}
               </TableRow>
