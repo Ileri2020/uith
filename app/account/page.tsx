@@ -57,8 +57,8 @@ const Account = () => {
             <div className="flex flex-row gap-3">
               <div className="w-14 h-14">icon</div>
               <div className="flex-1">
-                <div className="text-sm text-foreground/70">Username</div>
-                <div className="text-lg font-semibold">{user.username}</div>
+                <div className="text-sm text-foreground/70">First Name</div>
+                <div className="text-lg font-semibold">{user.first_name}</div>
               </div>
             </div>
           </div>
@@ -66,11 +66,22 @@ const Account = () => {
             <div className="flex flex-row gap-3">
               <div className="w-14 h-14">icon</div>
               <div className="flex-1">
-                <div className="text-sm text-foreground/70">Department</div>
-                <div className="text-lg font-semibold">{user.department}</div>
+                <div className="text-sm text-foreground/70">Last Name</div>
+                <div className="text-lg font-semibold">{user.last_name}</div>
               </div>
             </div>
           </div>
+          {user?.role === 'patient' && (
+            <div className="w-full px-3">
+              <div className="flex flex-row gap-3">
+                <div className="w-14 h-14">icon</div>
+                <div className="flex-1">
+                  <div className="text-sm text-foreground/70">Department</div>
+                  <div className="text-lg font-semibold">{user.department}</div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="w-full px-3">
             <div className="flex flex-row gap-3">
               <div className="w-14 h-14">icon</div>

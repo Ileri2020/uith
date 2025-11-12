@@ -152,7 +152,7 @@ export function PatientTable() {
 }, [rowSelection, table])
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-lg mx-auto">
       <BookingDialog open={openDialog} onOpenChange={setOpenDialog} patient={selectedPatient} />
       <div className="flex items-center py-4">
         <Input

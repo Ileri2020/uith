@@ -209,7 +209,7 @@ React.useEffect(() => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg mx-auto">
         <DialogHeader>
           <DialogTitle>
             Book appointment for {patient?.first_name ?? ''} {patient?.last_name ?? ''}

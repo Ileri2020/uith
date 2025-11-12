@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import PatientInfoCard from '@/components/patient/patient-info-card'
 import AppointmentCalendarCard from '@/components/patient/appointment-calendar-card'
-import UpcomingAppointmentsTable from '@/components/patient/upcoming-appointments-table'
 import BillingSummaryTable from '@/components/patient/billing-summary-table'
 import SummaryStatsCard from '@/components/patient/summary-stats-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getGreeting } from '@/utils/greeting'
 import ErrorPage from '@/app/error'
 import { useAppContext } from '@/hooks/useAppContext'
+import PatientAppointmentsTable from '@/components/patient/patient-appointments-table'
 
 function SkeletonLoader() {
   return (
@@ -65,38 +65,38 @@ export default function PatientDashboard() {
       date_of_birth: '1985-06-15',
     },
   }
-  const mockappointments = [
-    {
-      visit_date: '2024-06-10T09:00:00Z',
-      visit_status: 'Scheduled' as const,
-      medical_staff: {
-        users: {
-          last_name: 'Johnson',
-          first_name: 'Dr. Emily',
-        },
-      },
-    },
-    {
-      visit_date: '2024-06-15T14:30:00Z',
-      visit_status: 'Completed' as const,
-      medical_staff: {
-        users: {
-          last_name: 'Williams',
-          first_name: 'Dr. Michael',
-        },
-      },
-    },
-    {
-      visit_date: '2024-06-20T11:00:00Z',
-      visit_status: 'Canceled' as const,
-      medical_staff: {
-        users: {
-          last_name: 'Brown',
-          first_name: 'Dr. Sarah',
-        },
-      },
-    }
-  ]
+  // const mockappointments = [
+  //   {
+  //     visit_date: '2024-06-10T09:00:00Z',
+  //     visit_status: 'Scheduled' as const,
+  //     medical_staff: {
+  //       users: {
+  //         last_name: 'Johnson',
+  //         first_name: 'Dr. Emily',
+  //       },
+  //     },
+  //   },
+  //   {
+  //     visit_date: '2024-06-15T14:30:00Z',
+  //     visit_status: 'Completed' as const,
+  //     medical_staff: {
+  //       users: {
+  //         last_name: 'Williams',
+  //         first_name: 'Dr. Michael',
+  //       },
+  //     },
+  //   },
+  //   {
+  //     visit_date: '2024-06-20T11:00:00Z',
+  //     visit_status: 'Canceled' as const,
+  //     medical_staff: {
+  //       users: {
+  //         last_name: 'Brown',
+  //         first_name: 'Dr. Sarah',
+  //       },
+  //     },
+  //   }
+  // ]
   const mockBilling = [
     {
       bill_id: 1001,
@@ -147,37 +147,44 @@ export default function PatientDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [patientResponse, appointmentsResponse, billingResponse] =
-        await Promise.all([
-          fetch('/api/patients/me'),
-          fetch('/api/appointments'),
-          fetch('/api/billing/patient/me'),
-        ])
+      // const [patientResponse, appointmentsResponse, billingResponse] =
+      //   await Promise.all([
+      //     fetch('/api/patients/me'),
+      //     fetch('/api/appointments'),
+      //     fetch('/api/billing/patient/me'),
+      //   ])
 
-      if (!patientResponse.ok) {
-        throw new Error('Failed to fetch patient profile')
-      }
+      // if (!patientResponse.ok) {
+      //   throw new Error('Failed to fetch patient profile')
+      // }
+      // if (!appointmentsResponse.ok) {
+      //   throw new Error('Failed to fetch appointments')
+      // }
+
+      const appointmentsResponse = await fetch(`/api/dbhandler?patient_id=${user.id}&model=appointment`);
       if (!appointmentsResponse.ok) {
-        throw new Error('Failed to fetch appointments')
+        alert('Failed to fetch appointments');
+        return; 
       }
 
-      const patientData = await patientResponse.json()
+      // const patientData = await patientResponse.json()
       const appointmentsData = await appointmentsResponse.json()
-      const billingData = await billingResponse.json()
+      // const billingData = await billingResponse.json()
 
-      setPatientProfile(patientData)
+      // setPatientProfile(patientData)
       setAppointments(appointmentsData)
-      setBilling(billingData)
+      console.log('appointments for patient ID:', appointments);
+      // setBilling(billingData)
     } catch (err) {
-      setError('An error occurred while fetching data')
+      // alert('An error occurred while fetching data')
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    // fetchData()
-  }, [fetchData])
+    fetchData()
+  }, [])
 
   // if (loading) {
   //   return <SkeletonLoader />
@@ -199,7 +206,6 @@ export default function PatientDashboard() {
           </h1>
         </div>
       </header>
-      <FormListTable />
       <section className="grid grid-cols-1 sm:grid-cols-2 /lg:grid-cols-3 gap-4 md:px-20 max-w-6xl mx-auto">
         <div className='flex flex-col gap-3'>
           <PatientInfoCard
@@ -209,17 +215,20 @@ export default function PatientDashboard() {
           />
           <AppointmentCalendarCard 
             //appointments={appointments} 
-            appointments={mockappointments} 
+            appointments={appointments} 
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <section className="hidden sm:grid gap-4 md:grid-cols-2 col-span-2">
-            <SummaryStatsCard appointments={mockappointments} billing={mockBilling} />
+            <SummaryStatsCard appointments={appointments} billing={mockBilling} />
           </section>
-          <UpcomingAppointmentsTable appointments={appointments} />
+          {!loading && appointments.length > 0 && (
+            <PatientAppointmentsTable appointments={appointments} />
+          )}
           <BillingSummaryTable billing={billing} appointments={appointments} />
         </div>
       </section>
+      <FormListTable />
 
       
     </div>
@@ -259,6 +268,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/hooks/use-toast'
 
+
 type Form = {
   id: string
   title: string
@@ -287,7 +297,7 @@ const FormListTable = () => {
   React.useEffect(() => {
     async function loadForms() {
       try {
-        const res = await fetch('/api/generic?model=form')
+        const res = await fetch('/api/dbhandler?model=form')
         const json = await res.json()
         setData(json)
       } catch {
@@ -325,7 +335,7 @@ const FormListTable = () => {
   const handleSubmit = async (values: Record<string, any>) => {
     if (!selectedForm) return
     try {
-      const res = await fetch(`/api/generic?model=form&id=${selectedForm.id}`, {
+      const res = await fetch(`/api/dbhandler?model=form&id=${selectedForm.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { ...selectedForm.fields, ...values } }),
@@ -344,7 +354,8 @@ const FormListTable = () => {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-lg mx-auto">
+      <div className='font-bold text-lg w-full /text-center'>Forms</div>
       {selectedForm ? (
         <div className="p-4 border rounded mb-4">
           <h3 className="font-bold mb-2">{selectedForm.title}</h3>

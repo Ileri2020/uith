@@ -74,6 +74,7 @@ function jsonResponse(data: any, status = 200) {
 }
 
 // --- 5️⃣ GET ---------------------------------------------------------------------------
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const modelName = searchParams.get('model')
@@ -81,17 +82,17 @@ export async function GET(req: NextRequest) {
   const role = searchParams.get('role')
   const orderBy = searchParams.get('orderBy')
   const orderDir = searchParams.get('orderDir')?.toLowerCase() === 'asc' ? 'asc' : 'desc'
-
+  const patientId = searchParams.get('patient-id')   // ← new param
   const prismaModel = getModel(modelName)
+
   if (!prismaModel) return jsonResponse({ message: 'Invalid model' }, 400)
 
   try {
     if (!idParam) {
-      // Build the where clause
       const where: any = {}
       if (role) where.role = role
+      if (modelName === 'appointment' && patientId) where.patient_id = patientId   // ← filter
 
-      // Build the orderBy clause
       const orderByClause: any = {}
       if (orderBy) orderByClause[orderBy] = orderDir || 'desc'
 
@@ -111,6 +112,18 @@ export async function GET(req: NextRequest) {
           user: users.find((u: any) => u.id === item.userId),
         }))
         return jsonResponse(result)
+      }
+
+      if (modelName === 'appointment') {
+        const items = await prismaModel.findMany({
+          where,
+          orderBy: orderByClause,
+          include: {
+            patient: true,         // includes User fields
+            medical_staff: true,   // includes User fields
+          },
+        })
+        return jsonResponse(items)
       }
 
       const items = await prismaModel.findMany({
