@@ -121,10 +121,34 @@ export async function GET(req: NextRequest) {
           include: {
             patient: true,         // includes User fields
             medical_staff: true,   // includes User fields
+            form: true,
           },
         })
         return jsonResponse(items)
       }
+
+      // GET form assigned to appointment
+      if (modelName === "form" && searchParams.get("appointmentId")) {
+        const appointmentId = searchParams.get("appointmentId")!
+
+        // Get the appointment
+        const appointment = await prisma.appointment.findUnique({
+          where: { id: appointmentId },
+        })
+
+        // If appointment has no form
+        if (!appointment?.form_id) {
+          return jsonResponse([])
+        }
+
+        // Fetch the specific form
+        const form = await prisma.form.findUnique({
+          where: { id: appointment.form_id }
+        })
+
+        return jsonResponse(form ? [form] : [])
+      }
+
 
       const items = await prismaModel.findMany({
         where,
@@ -168,7 +192,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (modelName === "user") {
+    if (modelName == "user") {
       const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
       const hashedPassword = await bcrypt.hash(body.password, saltRounds);
       body.password = hashedPassword;
@@ -183,6 +207,7 @@ export async function POST(req: NextRequest) {
 }
 
 // --- 7️⃣ PUT ---------------------------------------------------------------------------
+
 export async function PUT(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
@@ -190,26 +215,48 @@ export async function PUT(req: NextRequest) {
 
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
-  let body: any;
+  let body;
   try {
     body = await req.json();
   } catch {
     return jsonResponse({ message: "Invalid JSON" }, 400);
   }
 
-  const { id, ...updateData } = body;
-  if (!id) return jsonResponse({ message: "Missing id" }, 400);
-
   try {
-    const updated = await prismaModel.update({
-      where: { id },
-      data: updateData,
-    });
-    return jsonResponse(updated);
+    if (modelName === 'appointment') {
+      // Handle appointment update
+      const { id, form, ...updateData } = body;
+      if (!id) return jsonResponse({ message: "Missing id" }, 400);
+
+      const updatedAppointment = await prismaModel.update({
+        where: { id },
+        data: updateData,
+      });
+
+      if (form) {
+        await prisma.form.update({
+          where: { id: form.id },
+         data: { fields: form.fields }
+        });
+      }
+
+      return jsonResponse(updatedAppointment);
+    } else {
+      // Handle other models
+      const { id, ...updateData } = body;
+      if (!id) return jsonResponse({ message: "Missing id" }, 400);
+
+      const updated = await prismaModel.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return jsonResponse(updated);
+    }
   } catch (error) {
     console.error("Database update error:", error);
-    return jsonResponse({ error: "Failed to update item" }, 500);
-  }
+    return jsonResponse({ error: "Failed to update item" }, 500);
+  }
 }
 
 // --- 8️⃣ DELETE -------------------------------------------------------------------------

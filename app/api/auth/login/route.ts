@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   // const email = body.email
 
   const { method } = req; 
-  console.log("in db handler",model, id, method, body)
+  console.log("in api auth login function",model, id, method, body)
 
   
   try {
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       where: { email: body.email, },
     });
     if (!user) {
+      console.log('User not found with email:', body.email);  
       return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
     }
     const isvalid = await bcrypt.compare(body.password, user.password)

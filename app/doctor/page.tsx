@@ -158,47 +158,47 @@ const CreateFormButton = () => {
   }
 
   const handleCreate = async () => {
-    if (!title.trim()) {
-      toast({ title: 'Title is required' })
-      return
-    }
-    if (questions.some(q => !q.trim())) {
-      toast({ title: 'All question fields must have text' })
-      return
-    }
-
-    try {
-      // turn the question array into a simple JSON object:
-      // { q1: "first question", q2: "second question", ... }
-      const fields: Record<string, string> = {}
-      questions.forEach((q, i) => {
-        fields[`question_${i + 1}`] = q
-      })
-
-      const res = await fetch(`/api/dbhandler?model=form`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          ownerId: user?.id,
-          fields,               // <-- now includes the questions
-        }),
-      })
-
-      if (res.ok) {
-        setTitle('')
-        setQuestions([''])
-        setIsCreating(false)
-        toast({ title: 'Form created!' })
-        // you could emit an event here to refresh the table
-      } else {
-        const data = await res.json()
-        toast({ title: data.error || 'Something went wrong' })
-      }
-    } catch (e) {
-      toast({ title: 'Network error' })
-    }
+  if (!title.trim()) {
+    toast({ title: 'Title is required' })
+    return
   }
+  if (questions.some(q => !q.trim())) {
+    toast({ title: 'All question fields must have text' })
+    return
+  }
+
+  try {
+    // Convert question array into:
+    // { "Question text here": "" }
+    const fields: Record<string, string> = {}
+    questions.forEach(q => {
+      fields[q] = ""   // <= key is question text, value is empty
+    })
+
+    const res = await fetch(`/api/dbhandler?model=form`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        ownerId: user?.id,
+        fields,
+      }),
+    })
+
+    if (res.ok) {
+      setTitle('')
+      setQuestions([''])
+      setIsCreating(false)
+      toast({ title: 'Form created!' })
+    } else {
+      const data = await res.json()
+      toast({ title: data.error || 'Something went wrong' })
+    }
+  } catch (e) {
+    toast({ title: 'Network error' })
+  }
+}
+
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-md mx-auto my-2">

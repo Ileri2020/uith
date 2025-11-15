@@ -17,12 +17,9 @@ import Advert from '../advert';
 
 const Navbar = () => {
   return (
-    <div className="w-screen overflow-clip flex flex-col m-0 p-0 relative">
+    <div className="sticky top-0 z-10 w-screen overflow-clip flex flex-col m-0 p-0">
       <header className="w-screen py-4 bg-background sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center h-[50px] overflow-clip shadow-lg">
-            <div className="lg:hidden">
-              <Sidenav />
-            </div>
             {/* <Link href={"/"} className="flex dark:hidden flex-1 md:flex-none max-h-[43px] md:max-h-[50px] overflow-clip flex justify-center items-center py-5 /rounded-full">
                 <Image src={greenlogo} alt="" className="w-[100px] h-auto"/>
             </Link>
@@ -58,9 +55,9 @@ const Navbar = () => {
               </div>
             
             
-            <Button variant={"outline"} className="lg:hidden relative flex justify-center items-center rounded-full w-[35px] h-[35px] overflow-clip text-accent text-xl"><AiOutlineSearch /></Button>
+            {/* <Button variant={"outline"} className="lg:hidden relative flex justify-center items-center rounded-full w-[35px] h-[35px] overflow-clip text-accent text-xl"><AiOutlineSearch /></Button>
 
-            {/* <SearchInput /> */}
+            <SearchInput /> */}
 
 
             <div className="hidden lg:flex items-center gap-8">
@@ -73,6 +70,9 @@ const Navbar = () => {
               */}
               {/* <Cart /> */}
               <ModeToggle />
+            </div>
+            <div className="lg:hidden h-full justify-center items-center">
+              <Sidenav />
             </div>
         </div>
         <Advert />

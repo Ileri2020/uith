@@ -71,7 +71,7 @@ export default async function RootLayout({
                 </header> */}
                 <Navbar />
 
-                <main className="flex-1 container mx-auto">{children}</main>
+                <main className="flex-1 w-full">{children}</main>
 
                 
                 <Footer3 />

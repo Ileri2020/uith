@@ -30,7 +30,7 @@ model User {
   email           String    @unique
   password        String?
   role            Role      @default(patient)
-  avatarUrl       String?
+  avatarUrl       String?    @default("https://res.cloudinary.com/dc5khnuiu/image/upload/v1752627019/uxokaq0djttd7gsslwj9.png")
   phone_number    String?   @default("xxxx-xxx-xxxx")
   emergency_contact String? @default("xxxx-xxx-xxxx")
   department      Department? @relation(fields: [department_id], references: [id])

@@ -152,14 +152,16 @@ export function PatientTable() {
 }, [rowSelection, table])
 
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-lg mx-auto shadow-lg bg-secondary rounded-lg p-1">
       <BookingDialog open={openDialog} onOpenChange={setOpenDialog} patient={selectedPatient} />
+      <div className="text-lg font-semibold mx-3">All Patients</div>
       <div className="flex items-center py-4">
+        
         <Input
           placeholder="Filter by name or email..."
           value={(table.getColumn('email')?.getFilterValue() as string) ?? ''}
           onChange={e => table.getColumn('email')?.setFilterValue(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm mr-2"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
