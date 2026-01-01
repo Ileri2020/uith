@@ -7,20 +7,11 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 
-type FormField = {
-  id: string
-  label: string
-  value?: string | null
-  placeholder?: string | null
-  required?: boolean
-}
-
 type FormType = {
   id: string
   title: string
-  fields: Record<string, string> // 🔥 keys = questions, value = response string
+  fields: Record<string, string> // keys = question, value = type ("string" | "number" | "boolean")
 }
-
 
 type UserRef = {
   id: string
@@ -34,12 +25,11 @@ export type AppointmentFull = {
   visit_date: string | Date
   visit_status: string
   case?: string | null
-  questions?: string[] | null
-  remarks?: string[] | null
   patient?: UserRef | null
   medical_staff?: UserRef | null
-  form?: FormType | null // Change this line
+  form?: FormType | null
   form_id?: string | null
+  answers_forms?: { [key: string]: any } | null
   createdAt?: string | Date
   updatedAt?: string | Date
 }
@@ -55,102 +45,90 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
   const [loadingForms, setLoadingForms] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
 
-  // load forms when dialog opens (if not present)
   React.useEffect(() => {
-    console.log('AppointmentDialog open changed:', open, appointment)
     if (!open || !appointment) return
-
     setLocalAppointment(appointment)
 
-    // If form already present, skip
     if (appointment.form) return
 
     const load = async () => {
-      if (!appointment.form_id) return  // 🔥 correct field
-
+      if (!appointment.form_id) return
       setLoadingForms(true)
       try {
         const res = await fetch(`/api/dbhandler?model=form&appointmentId=${appointment.id}`)
         const data = await res.json()
-        console.log('Loaded forms for appointment:', data)
-
         setLocalAppointment(ap =>
           ap ? { ...ap, form: data[0] ?? null } : null
-        );
-
+        )
       } finally {
         setLoadingForms(false)
       }
     }
-
     load()
   }, [open, appointment])
 
+  // Update top-level appointment fields
+  const setVisitDate = (val: string) => setLocalAppointment(prev => prev ? { ...prev, visit_date: val } : prev)
+  const setVisitStatus = (val: string) => setLocalAppointment(prev => prev ? { ...prev, visit_status: val } : prev)
+  const setCase = (val: string) => setLocalAppointment(prev => prev ? { ...prev, case: val } : prev)
 
-  // helper to update a field value in memory
-  const handleFieldChange = (formId: string, fieldId: string, newValue: string) => {
+  // Update form answers
+  const handleAnswerChange = (fieldKey: string, type: string, value: any) => {
     setLocalAppointment(prev => {
-      if (!prev?.form || prev.form.id !== formId) return prev;
-
+      if (!prev) return prev
+      const prevAnswers = prev.answers_forms ?? {}
+      let parsedValue = value
+      if (type === 'number') parsedValue = Number(value)
+      if (type === 'boolean') parsedValue = Boolean(value)
       return {
         ...prev,
-        form: {
-          ...prev.form,
-          fields: {
-            ...prev.form.fields,
-            [fieldId]: newValue
-          }
+        answers_forms: {
+          ...prevAnswers,
+          [fieldKey]: parsedValue
         }
-      };
-    });
-  };
-
-
-
-  // allow editing top-level appointment fields (date, status, case)
-  const setVisitDate = (val: string) => {
-    setLocalAppointment(prev => prev ? { ...prev, visit_date: val } : prev)
-  }
-  const setVisitStatus = (val: string) => {
-    setLocalAppointment(prev => prev ? { ...prev, visit_status: val } : prev)
-  }
-  const setCase = (val: string) => {
-    setLocalAppointment(prev => prev ? { ...prev, case: val } : prev)
+      }
+    })
   }
 
   const handleSave = async () => {
-    if (!localAppointment) return;
-    setSaving(true);
+    if (!localAppointment) return
+    setSaving(true)
     try {
-      const payload = {
+      const payload: any = {
         id: localAppointment.id,
         visit_date: new Date(localAppointment.visit_date).toISOString(),
         visit_status: localAppointment.visit_status,
         case: localAppointment.case,
-        form: localAppointment.form ? {
-          id: localAppointment.form.id,
-          fields: localAppointment.form.fields,
-        } : null,
       };
+
+      // Only include answers_forms if form exists
+      if (localAppointment.form) {
+        payload.answers_forms = {
+          create: {
+            title: localAppointment.form.title ?? 'Form Title',
+            recipientId: localAppointment.patient?.id ?? '',
+            answers: localAppointment.answers_forms ?? {},
+            formId: localAppointment.form_id ?? '',
+            // appointmentId: localAppointment.id,
+          },
+        };
+      }
 
       await fetch(`/api/dbhandler?model=appointment`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      });
+      })
 
-      toast({ title: 'Saved appointment & form' });
-      onOpenChange(false);
+      toast({ title: 'Saved appointment & form answers' })
+      onOpenChange(false)
     } catch (err) {
-      console.error(err);
-      toast({ title: 'Save failed' });
+      console.error(err)
+      toast({ title: 'Save failed' })
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
-
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,7 +136,7 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
         <DialogHeader>
           <DialogTitle>Appointment Details</DialogTitle>
           <DialogDescription>
-            View & edit appointment information and any associated forms (text fields).
+            View & edit appointment information and any associated forms.
           </DialogDescription>
         </DialogHeader>
 
@@ -169,15 +147,11 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <Label>Patient</Label>
-                <div className="text-sm">
-                  {localAppointment.patient ? `${localAppointment.patient.first_name ?? ''} ${localAppointment.patient.last_name ?? ''}` : '—'}
-                </div>
+                <div className="text-sm">{localAppointment.patient ? `${localAppointment.patient.first_name ?? ''} ${localAppointment.patient.last_name ?? ''}` : '—'}</div>
               </div>
               <div>
                 <Label>Medical Staff</Label>
-                <div className="text-sm">
-                  {localAppointment.medical_staff ? `${localAppointment.medical_staff.first_name ?? ''} ${localAppointment.medical_staff.last_name ?? ''}` : '—'}
-                </div>
+                <div className="text-sm">{localAppointment.medical_staff ? `${localAppointment.medical_staff.first_name ?? ''} ${localAppointment.medical_staff.last_name ?? ''}` : '—'}</div>
               </div>
             </div>
 
@@ -203,12 +177,6 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
               </div>
             </div>
 
-
-
-
-
-            
-
             <div>
               <h4 className="text-sm font-medium">Forms</h4>
               {loadingForms ? (
@@ -221,23 +189,31 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
                         <div className="text-sm font-semibold">{localAppointment.form.title}</div>
                       </div>
                       <div className="grid gap-3">
-                        {localAppointment.form?.fields && Object.keys(localAppointment.form.fields).length > 0 ? (
-                          Object.entries(localAppointment.form.fields).map(([key, value]) => (
+                        {Object.entries(localAppointment.form.fields).map(([key, type]) => {
+                          const answerValue = localAppointment.answers_forms?.[key] ?? (type === 'boolean' ? false : '')
+                          if (type === 'boolean') {
+                            return (
+                              <div key={key} className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(answerValue)}
+                                  onChange={e => handleAnswerChange(key, type, e.target.checked)}
+                                />
+                                <Label className="text-xs">{key}</Label>
+                              </div>
+                            )
+                          }
+                          return (
                             <div key={key}>
                               <Label className="text-xs">{key}</Label>
                               <Input
-                                value={value ?? ''}
-                                onChange={e =>
-                                  handleFieldChange(localAppointment.form!.id, key, e.target.value)
-                                }
+                                type={type === 'number' ? 'number' : 'text'}
+                                value={answerValue}
+                                onChange={e => handleAnswerChange(key, type, e.target.value)}
                               />
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No fields defined for this form.
-                          </div>
-                        )}
+                          )
+                        })}
                       </div>
                     </div>
                   ) : (
@@ -246,8 +222,6 @@ export function AppointmentDialog({ open, onOpenChange, appointment }: Props) {
                 </div>
               )}
             </div>
-
-
           </div>
         )}
 

@@ -10,6 +10,7 @@ import CreateBillingSection from '../../components/admin/create-billing'
 import UpdateBillingSection from '../../components/admin/update-billing'
 import AddBillingItemSection from '../../components/admin/add-billing'
 import BillingTableSection from '../../components/admin/billing-table-section'
+import CertificationTable from '../../components/admin/certification-table'
 
 /* ========= types ========= */
 type Nurse = {
@@ -454,6 +455,9 @@ export default function AdminDashboard() {
                 handleAssign={handleAssign}
                 handleAdmissionChange={handleAdmissionChange}
               />
+              <div className="mt-10">
+                <CertificationTable />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
                 <CreateStaffSection
                   userList={userList}

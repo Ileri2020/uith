@@ -23,12 +23,12 @@ type ModelName =
   | "stock"
   | "user"
   | "form"
+  | "formField"
   | "conversation"
   | "message"
   | "appointment"
-  | "admission"
-  | "room"
-  | "department"
+  | "prescription"
+  | "appVisit"
   | "post"
   | "notification";
 
@@ -49,12 +49,15 @@ const modelMap: Record<ModelName, any> = {
   stock: prisma.stock,
   user: prisma.user,
   form: prisma.form,
+  formField: prisma.formField,
   conversation: prisma.conversation,
   message: prisma.message,
   appointment: prisma.appointment,
   admission: prisma.admission,
   room: prisma.room,
   department: prisma.department,
+  prescription: prisma.prescription,
+  appVisit: prisma.appVisit,
 };
 
 // --- 3️⃣ Helper to get the correct Prisma model ---------------------------------------
@@ -73,6 +76,22 @@ function jsonResponse(data: any, status = 200) {
   });
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // --- 5️⃣ GET ---------------------------------------------------------------------------
 
 export async function GET(req: NextRequest) {
@@ -82,74 +101,90 @@ export async function GET(req: NextRequest) {
   const role = searchParams.get('role')
   const orderBy = searchParams.get('orderBy')
   const orderDir = searchParams.get('orderDir')?.toLowerCase() === 'asc' ? 'asc' : 'desc'
-  const patientId = searchParams.get('patient-id')   // ← new param
-  const prismaModel = getModel(modelName)
+  const patientId = searchParams.get('patient-id')
+  const medicalStaffId = searchParams.get("medical_staff_id")
 
+  const prismaModel = getModel(modelName)
   if (!prismaModel) return jsonResponse({ message: 'Invalid model' }, 400)
 
   try {
+    // ==========================
+    // LIST QUERY (NO ID)
+    // ==========================
     if (!idParam) {
       const where: any = {}
-      if (role) where.role = role
-      if (modelName === 'appointment' && patientId) where.patient_id = patientId   // ← filter
+
+      // Map all search params to where clause (except special ones)
+      searchParams.forEach((val, key) => {
+        if (!['model', 'id', 'orderBy', 'orderDir', 'patient-id'].includes(key)) {
+          // Check if it's an ID field that should be an ObjectId
+          if (key.endsWith('Id') || key === 'patient_id' || key === 'medical_staff_id' || key === 'appointmentId') {
+            where[key] = val
+          } else {
+            where[key] = val
+          }
+        }
+      })
+
+      // Handle legacy dash param
+      if (patientId) where.patient_id = patientId
 
       const orderByClause: any = {}
-      if (orderBy) orderByClause[orderBy] = orderDir || 'desc'
+      if (orderBy) orderByClause[orderBy] = orderDir
 
-      // Special handling for models that need a user join
-      if (modelName === 'review' || modelName === 'post') {
-        const items = await prismaModel.findMany({
-          where,
-          orderBy: orderByClause,
-        })
-        const userIds = items.map((i: any) => i.userId)
-        const users = await prisma.user.findMany({
-          where: { id: { in: userIds } },
-          select: { id: true, email: true, name: true, avatarUrl: true },
-        })
-        const result = items.map((item: any) => ({
-          ...item,
-          user: users.find((u: any) => u.id === item.userId),
-        }))
-        return jsonResponse(result)
-      }
-
+      // Model-specific logic
       if (modelName === 'appointment') {
         const items = await prismaModel.findMany({
           where,
           orderBy: orderByClause,
           include: {
-            patient: true,         // includes User fields
-            medical_staff: true,   // includes User fields
+            patient: true,
+            medical_staff: true,
             form: true,
+            answers_forms: true,
+            prescriptions: true,
+            conversation: true,
           },
         })
         return jsonResponse(items)
       }
 
-      // GET form assigned to appointment
-      if (modelName === "form" && searchParams.get("appointmentId")) {
-        const appointmentId = searchParams.get("appointmentId")!
-
-        // Get the appointment
-        const appointment = await prisma.appointment.findUnique({
-          where: { id: appointmentId },
+      if (modelName === 'prescription') {
+        const items = await prismaModel.findMany({
+          where,
+          orderBy: orderByClause,
+          include: {
+            creator: true,
+            pharmacist: true,
+            patient: true,
+          }
         })
-
-        // If appointment has no form
-        if (!appointment?.form_id) {
-          return jsonResponse([])
-        }
-
-        // Fetch the specific form
-        const form = await prisma.form.findUnique({
-          where: { id: appointment.form_id }
-        })
-
-        return jsonResponse(form ? [form] : [])
+        return jsonResponse(items)
       }
 
+      if (modelName === 'formField') {
+        const items = await prismaModel.findMany({
+          where,
+          orderBy: orderByClause,
+          include: {
+            form: true,
+            recipient: true,
+            appointment: { include: { medical_staff: true } }
+          }
+        })
+        return jsonResponse(items)
+      }
 
+      if (modelName === 'post') {
+        const items = await prismaModel.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: { author: true }
+        })
+        return jsonResponse(items)
+      }
+
+      // Default
       const items = await prismaModel.findMany({
         where,
         orderBy: orderByClause,
@@ -157,31 +192,30 @@ export async function GET(req: NextRequest) {
       return jsonResponse(items)
     }
 
-    // If idParam exists
-    if (modelName === 'review') {
-      const items = await prismaModel.findMany({
-        where: { contentId: idParam },
-      })
-      return jsonResponse(items)
-    }
-
+    // ==========================
+    // GET BY ID
+    // ==========================
     const item = await prismaModel.findUnique({
       where: { id: idParam },
     })
     if (!item) return jsonResponse({ error: 'Document not found' }, 404)
+
     return jsonResponse(item)
+
   } catch (error) {
     console.error('Database error:', error)
     return jsonResponse({ error: 'Failed to fetch items' }, 500)
   }
 }
 
-// --- 6️⃣ POST --------------------------------------------------------------------------
+
+
+
+// --- ⿦ POST -------------------------------------------------------------------------- 
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const prismaModel = getModel(modelName);
-
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
   let body: any;
@@ -192,27 +226,55 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (modelName == "user") {
-      const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
-      const hashedPassword = await bcrypt.hash(body.password, saltRounds);
-      body.password = hashedPassword;
-    }
+    if (modelName === 'appointment') {
+      // Create a conversation for the appointment if it's new
+      const newItem = await prismaModel.create({ data: body });
+      await prisma.conversation.create({
+        data: {
+          appointmentId: newItem.id,
+          patientId: newItem.patient_id,
+        }
+      });
+      return jsonResponse(newItem, 201);
+    } else if (modelName === 'formField') {
+      // Check if form field already exists for appointment
+      const existingFormField = await prisma.formField.findFirst({
+        where: {
+          appointmentId: body.appointmentId,
+          formId: body.formId,
+        },
+      });
 
-    const newItem = await prismaModel.create({ data: body });
-    return jsonResponse(newItem, 201);
+      if (existingFormField) {
+        // Update existing form field
+        const updatedFormField = await prisma.formField.update({
+          where: { id: existingFormField.id },
+          data: body,
+        });
+        return jsonResponse(updatedFormField, 200);
+      } else {
+        // Create new form field
+        const newFormField = await prismaModel.create({ data: body });
+        return jsonResponse(newFormField, 201);
+      }
+    } else {
+      const newItem = await prismaModel.create({ data: body });
+      return jsonResponse(newItem, 201);
+    }
   } catch (error) {
     console.error("Database error:", error);
     return jsonResponse({ error: "Failed to create item" }, 500);
   }
 }
 
-// --- 7️⃣ PUT ---------------------------------------------------------------------------
 
+
+
+// --- ⿧ PUT --------------------------------------------------------------------------- 
 export async function PUT(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const modelName = searchParams.get("model");
   const prismaModel = getModel(modelName);
-
   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
 
   let body;
@@ -227,37 +289,37 @@ export async function PUT(req: NextRequest) {
       // Handle appointment update
       const { id, form, ...updateData } = body;
       if (!id) return jsonResponse({ message: "Missing id" }, 400);
-
       const updatedAppointment = await prismaModel.update({
         where: { id },
         data: updateData,
       });
-
-      if (form) {
-        await prisma.form.update({
-          where: { id: form.id },
-         data: { fields: form.fields }
-        });
-      }
-
       return jsonResponse(updatedAppointment);
+    } else if (modelName === 'formField') {
+      // Update form field
+      const { id, ...updateData } = body;
+      if (!id) return jsonResponse({ message: "Missing id" }, 400);
+      const updatedFormField = await prismaModel.update({
+        where: { id },
+        data: updateData,
+      });
+      return jsonResponse(updatedFormField);
     } else {
       // Handle other models
       const { id, ...updateData } = body;
       if (!id) return jsonResponse({ message: "Missing id" }, 400);
-
       const updated = await prismaModel.update({
         where: { id },
         data: updateData,
       });
-
       return jsonResponse(updated);
     }
   } catch (error) {
     console.error("Database update error:", error);
-    return jsonResponse({ error: "Failed to update item" }, 500);
-  }
+    return jsonResponse({ error: "Failed to update item" }, 500);
+  }
 }
+
+
 
 // --- 8️⃣ DELETE -------------------------------------------------------------------------
 export async function DELETE(req: NextRequest) {
@@ -277,3 +339,113 @@ export async function DELETE(req: NextRequest) {
     return jsonResponse({ error: "Failed to delete item" }, 500);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // --- 6️⃣ POST --------------------------------------------------------------------------
+// export async function POST(req: NextRequest) {
+//   const { searchParams } = new URL(req.url);
+//   const modelName = searchParams.get("model");
+//   const prismaModel = getModel(modelName);
+
+//   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
+
+//   let body: any;
+//   try {
+//     body = await req.json();
+//   } catch {
+//     return jsonResponse({ message: "Invalid JSON" }, 400);
+//   }
+
+//   try {
+//     if (modelName == "user") {
+//       const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
+//       const hashedPassword = await bcrypt.hash(body.password, saltRounds);
+//       body.password = hashedPassword;
+//     }
+
+//     const newItem = await prismaModel.create({ data: body });
+//     return jsonResponse(newItem, 201);
+//   } catch (error) {
+//     console.error("Database error:", error);
+//     return jsonResponse({ error: "Failed to create item" }, 500);
+//   }
+// }
+
+// // --- 7️⃣ PUT ---------------------------------------------------------------------------
+
+// export async function PUT(req: NextRequest) {
+//   const { searchParams } = new URL(req.url);
+//   const modelName = searchParams.get("model");
+//   const prismaModel = getModel(modelName);
+
+//   if (!prismaModel) return jsonResponse({ message: "Invalid model" }, 400);
+
+//   let body;
+//   try {
+//     body = await req.json();
+//   } catch {
+//     return jsonResponse({ message: "Invalid JSON" }, 400);
+//   }
+
+//   try {
+//     if (modelName === 'appointment') {
+//       // Handle appointment update
+//       const { id, form, ...updateData } = body;
+//       if (!id) return jsonResponse({ message: "Missing id" }, 400);
+
+//       const updatedAppointment = await prismaModel.update({
+//         where: { id },
+//         data: updateData,
+//       });
+
+//       if (form) {
+//         await prisma.form.update({
+//           where: { id: form.id },
+//          data: { fields: form.fields }
+//         });
+//       }
+
+//       return jsonResponse(updatedAppointment);
+//     } else {
+//       // Handle other models
+//       const { id, ...updateData } = body;
+//       if (!id) return jsonResponse({ message: "Missing id" }, 400);
+
+//       const updated = await prismaModel.update({
+//         where: { id },
+//         data: updateData,
+//       });
+
+//       return jsonResponse(updated);
+//     }
+//   } catch (error) {
+//     console.error("Database update error:", error);
+//     return jsonResponse({ error: "Failed to update item" }, 500);
+//   }
+// }

@@ -8,7 +8,9 @@ datasource db {
   url      = env("MONGODB_URL")
 }
 
-/* ------------------- enums ------------------- */
+/**
+ * ------------------- enums -------------------
+ */
 enum Role {
   patient
   doctor
@@ -17,91 +19,177 @@ enum Role {
   admin
 }
 
-/* ------------------- core models ------------------- */
+/**
+ * ------------------- core models -------------------
+ */
 model User {
-  id              String    @id @default(auto()) @map("_id") @db.ObjectId
-  first_name      String?
-  last_name       String?
-  date_of_birth   String?
-  gender          String?
-  national_id     String?
-  license_number  String?
-  blood_type      String?
-  email           String    @unique
-  password        String?
-  role            Role      @default(patient)
-  avatarUrl       String?    @default("https://res.cloudinary.com/dc5khnuiu/image/upload/v1752627019/uxokaq0djttd7gsslwj9.png")
-  phone_number    String?   @default("xxxx-xxx-xxxx")
-  emergency_contact String? @default("xxxx-xxx-xxxx")
-  department      Department? @relation(fields: [department_id], references: [id])
-  department_id   String?    @db.ObjectId
-  date_hired      DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                String      @id @default(auto()) @map("_id") @db.ObjectId
+  first_name        String?
+  last_name         String?
+  date_of_birth     String?
+  gender            String?
+  national_id       String?
+  license_number    String?
+  blood_type        String?
+  email             String      @unique
+  password          String?
+  role              Role        @default(patient)
+  avatarUrl         String?     @default("https://res.cloudinary.com/dc5khnuiu/image/upload/v1752627019/uxokaq0djttd7gsslwj9.png")
+  phone_number      String?     @default("xxxx-xxx-xxxx")
+  emergency_contact String?     @default("xxxx-xxx-xxxx")
+  department        Department? @relation(fields: [department_id], references: [id])
+  department_id     String?     @db.ObjectId
+  // auth provider fields
+  emailVerified     DateTime?
+  image             String?     @default("https://res.cloudinary.com/dc5khnuiu/image/upload/v1752627019/uxokaq0djttd7gsslwj9.png")
+  accounts          Account[]
+  sessions          Session[]
 
-  // relations from the messaging/feature set
-  sentMessages    Message[] @relation("Sender")
-  receivedMessages Message[] @relation("Receiver")
-  forms           Form[]    @relation("FormOwner")
-  conversations Conversation[] @relation("ConversationPatient")
+  // NEW profession fields
+  sub_profession    String?
+  level             String?
+  certificates      String[]
+  isCertified       Boolean? @default(false)
+  appointment_price Float?   @default(0)
+  rating            Float?   @default(5.0)
+  total_ratings     Int?     @default(0)
 
-  // other existing relations
-  cart            Cart[]
-  reviews         Review[]
-  address         String?  //ShippingAddress[]
-  post            Post[]
-  notification    Notification[]
-  appointments    Appointment[] @relation("PatientAppointment")
-  admissions      Admission[]   @relation("PatientAdmission")
-  staffAppointments Appointment[] @relation("StaffAppointment")
-  staffAdmissions   Admission[]   @relation("StaffAdmission")
-}
-
-/* ------------------- form / conversation / message ------------------- */
-model Form {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  ownerId       String        @db.ObjectId
-  owner         User          @relation("FormOwner", fields: [ownerId], references: [id])
-  fields        Json?         // free‑form data
-  conversations Conversation[] @relation("FormConversations")
-  appointments Appointment[] @relation("Appointmentforms")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-}
-
-
-model Conversation {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  formId    String   @db.ObjectId
-  form      Form     @relation("FormConversations", fields: [formId], references: [id])
-  patientId String   @db.ObjectId
-  patient   User     @relation("ConversationPatient", fields: [patientId], references: [id])
-  messages  Message[] @relation("ConversationMessages")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // relations from the messaging/feature set
+  sentMessages     Message[]      @relation("Sender")
+  receivedMessages Message[]      @relation("Receiver")
+  forms            Form[]         @relation("FormOwner")
+  forms_fields     FormField[]    @relation("FormRecipient")
+  conversations    Conversation[] @relation("ConversationPatient")
+
+  // other existing relations
+  cart              Cart[]
+  reviews           Review[]
+  address           String? //ShippingAddress[]
+  post              Post[]
+  notification      Notification[]
+  appointments      Appointment[]  @relation("PatientAppointment")
+  admissions        Admission[]    @relation("PatientAdmission")
+  staffAppointments Appointment[]  @relation("StaffAppointment")
+  staffAdmissions   Admission[]    @relation("StaffAdmission")
+
+  createdPrescriptions    Prescription[] @relation("PrescriptionCreator")
+  patientPrescriptions    Prescription[] @relation("PatientPrescriptions")
+  pharmacistPrescriptions Prescription[] @relation("PrescriptionPharmacist")
+}
+
+model Account {
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+
+  refresh_token String?
+  access_token  String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?
+  session_state String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/**
+ * ------------------- form / conversation / message -------------------
+ */
+model Form {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  ownerId       String         @db.ObjectId
+  owner         User           @relation("FormOwner", fields: [ownerId], references: [id])
+  fields        Json? // key of question, value in select input of type of question string, number, boolean, etc
+  conversations Conversation[] @relation("FormConversations")
+  answers       FormField[]    @relation("Form")
+  appointments  Appointment[]  @relation("Appointmentforms")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model FormField {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  recipientId   String       @db.ObjectId
+  recipient     User         @relation("FormRecipient", fields: [recipientId], references: [id])
+  answers       Json? // key of question in the form to be answered, value of answer to the question
+  formId        String       @db.ObjectId
+  form          Form         @relation("Form", fields: [formId], references: [id])
+  appointmentId String?      @db.ObjectId
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  dueDate       DateTime?
+  status        String       @default("unfilled") // unfilled, filled
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Conversation {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  formId        String?      @db.ObjectId
+  form          Form?        @relation("FormConversations", fields: [formId], references: [id])
+  patientId     String       @db.ObjectId
+  patient       User         @relation("ConversationPatient", fields: [patientId], references: [id])
+  appointmentId String?      @unique @db.ObjectId
+  appointment   Appointment? @relation("AppointmentConversation", fields: [appointmentId], references: [id])
+  messages      Message[]    @relation("ConversationMessages")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model Message {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  text          String
-  senderId      String    @db.ObjectId
-  sender        User      @relation("Sender", fields: [senderId], references: [id])
-  receiverId    String    @db.ObjectId
-  receiver      User      @relation("Receiver", fields: [receiverId], references: [id])
-  conversationId String   @db.ObjectId
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  text           String
+  senderId       String       @db.ObjectId
+  sender         User         @relation("Sender", fields: [senderId], references: [id])
+  receiverId     String       @db.ObjectId
+  receiver       User         @relation("Receiver", fields: [receiverId], references: [id])
+  conversationId String       @db.ObjectId
   conversation   Conversation @relation("ConversationMessages", fields: [conversationId], references: [id])
-  sentAt        DateTime  @default(now())
-  isQuestion    Boolean   @default(false)
-  isAnswer      Boolean   @default(false)
+  sentAt         DateTime     @default(now())
+  isQuestion     Boolean      @default(false)
+  isAnswer       Boolean      @default(false)
 }
 
-/* ------------------- other existing models ------------------- */
+/**
+ * ------------------- other existing models -------------------
+ */
 model Post {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String?
   description String?
   contentUrl  String?
+  type        String   @default("post") // "post", "announcement"
   authorId    String   @db.ObjectId
   author      User     @relation(fields: [authorId], references: [id])
   createdAt   DateTime @default(now())
@@ -118,52 +206,52 @@ model Notification {
 }
 
 model Category {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Department {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
   description String?
-  products    Product[]
+  staffs      User[]
+  rooms       Room[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-model Department {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String   @unique
-  description String?
-  staffs    User[]
-  rooms     Room[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Product {
-  id               String        @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  description      String?
-  categoryId       String        @db.ObjectId
-  category         Category      @relation(fields: [categoryId], references: [id])
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  description       String?
+  categoryId        String           @db.ObjectId
+  category          Category         @relation(fields: [categoryId], references: [id])
   activeIngredients String[]
-  scarce           Boolean?
-  for              String[]      // e.g., "oncology", "hiv"
-  brand            String?
-  price            Float
-  stock            Stock[]
-  min_stock_level  Float
-  reviews          Review[]
-  cartItems        CartItem[]
-  Featured         FeaturedProduct?
-  images           String[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  scarce            Boolean?
+  for               String[] // e.g., "oncology", "hiv"
+  brand             String?
+  price             Float
+  stock             Stock[]
+  min_stock_level   Float
+  reviews           Review[]
+  cartItems         CartItem[]
+  Featured          FeaturedProduct?
+  images            String[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 model Stock {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  productId    String   @unique @db.ObjectId
-  product      Product  @relation(fields: [productId], references: [id])
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId     String   @unique @db.ObjectId
+  product       Product  @relation(fields: [productId], references: [id])
   addedQuantity Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Cart {
@@ -191,88 +279,93 @@ model CartItem {
 }
 
 model Room {
-  id           String      @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
   departmenr_id String      @db.ObjectId
-  department   Department  @relation(fields: [departmenr_id], references: [id])
-  admissions   Admission[]
-  bed_space    Int
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  department    Department  @relation(fields: [departmenr_id], references: [id])
+  admissions    Admission[]
+  bed_space     Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Appointment {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  visit_date    DateTime
-  visit_status  String   @default("Scheduled")
-  patient_id    String   @db.ObjectId
-  patient       User     @relation("PatientAppointment", fields: [patient_id], references: [id])
-  case          String?
-  questions     String[]
-  remarks       String[]
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  visit_date   DateTime
+  visit_status String   @default("Scheduled") // This can stay for back-compat or legacy
+
+  // NEW STATUS FIELD for complex flow
+  status String @default("booked") // booked, accepted, rejected, pending_payment, unconfirmed_payment, paid, pending, completed
+
+  patient_id String @db.ObjectId
+  patient    User   @relation("PatientAppointment", fields: [patient_id], references: [id])
+
   medical_staff_id String @db.ObjectId
-  medical_staff   User   @relation("StaffAppointment", fields: [medical_staff_id], references: [id])
+  medical_staff    User   @relation("StaffAppointment", fields: [medical_staff_id], references: [id])
 
-  // 👇 NEW FIELDS 👇
-  scan_images   String[] // stores URLs or paths to scan images
-  payment_status String @default("unpaid") // e.g., "paid", "unpaid", "refunded"
-  admission_id  String? @db.ObjectId // optional link to an Admission record
+  profession            String?
+  reason                String?
+  reason_description    String?
+  professional_message  String?
+  payment_transfer_name String?
+  patient_rating        Int?
+
+  case      String?
+  questions String[]
+  remarks   String[]
+
+  scan_images    String[]
+  payment_status String   @default("unpaid")
+
+  admission_id String?    @db.ObjectId
   admission    Admission? @relation("AppointmentAdmission", fields: [admission_id], references: [id])
-  form_id String? @db.ObjectId // optional, if you want a direct reference
-  form      Form?     @relation("Appointmentforms", fields: [form_id], references: [id])
-  
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  form_id String? @db.ObjectId
+  form    Form?   @relation("Appointmentforms", fields: [form_id], references: [id])
+
+  answers_forms FormField[]
+
+  conversation Conversation? @relation("AppointmentConversation")
+
+  prescriptions Prescription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Admission {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  admission_date DateTime
-  discharge_date DateTime
-  room_id       String   @db.ObjectId
-  room          Room     @relation(fields: [room_id], references: [id])
-  patient_id    String   @db.ObjectId
-  patient       User     @relation("PatientAdmission", fields: [patient_id], references: [id])
-  medical_staff_id String @db.ObjectId
-  medical_staff   User   @relation("StaffAdmission", fields: [medical_staff_id], references: [id])
-  appointments Appointment[] @relation("AppointmentAdmission")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  admission_date   DateTime
+  discharge_date   DateTime
+  room_id          String        @db.ObjectId
+  room             Room          @relation(fields: [room_id], references: [id])
+  patient_id       String        @db.ObjectId
+  patient          User          @relation("PatientAdmission", fields: [patient_id], references: [id])
+  medical_staff_id String        @db.ObjectId
+  medical_staff    User          @relation("StaffAdmission", fields: [medical_staff_id], references: [id])
+  appointments     Appointment[] @relation("AppointmentAdmission")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Payment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   cartId    String   @unique @db.ObjectId
   cart      Cart     @relation(fields: [cartId], references: [id])
-  method    String   // could become an enum later
+  method    String
   amount    Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Coupon {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  code      String   @unique
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  code      String    @unique
   discount  Float?
   expiresAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
-
-// model ShippingAddress {
-//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-//   userId    String   @db.ObjectId
-//   user      User     @relation(fields: [userId], references: [id])
-//   address   String?
-//   city      String?
-//   state     String?
-//   zip       String?
-//   country   String?
-//   phone     String?
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }
 
 model Refund {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -294,16 +387,37 @@ model FeaturedProduct {
 }
 
 model Review {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
-  productId   String   @db.ObjectId
-  product     Product  @relation(fields: [productId], references: [id])
-  rating      Int
-  comment     String?
-  isArchived  Boolean  @default(false)
-  reply       Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+  productId  String   @db.ObjectId
+  product    Product  @relation(fields: [productId], references: [id])
+  rating     Int
+  comment    String?
+  isArchived Boolean  @default(false)
+  reply      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
+model Prescription {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  appointmentId String?      @db.ObjectId
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  patientId     String       @db.ObjectId
+  patient       User         @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  creatorId     String       @db.ObjectId
+  creator       User         @relation("PrescriptionCreator", fields: [creatorId], references: [id])
+  pharmacistId  String?      @db.ObjectId
+  pharmacist    User?        @relation("PrescriptionPharmacist", fields: [pharmacistId], references: [id])
+  drugs         Json
+  status        String       @default("pending") // pending, sent_to_pharmacist, dispensed
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model AppVisit {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  browserId String
+  date      DateTime @default(now())
+}

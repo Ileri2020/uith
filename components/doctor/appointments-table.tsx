@@ -1,194 +1,204 @@
+// @ts-nocheck
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import React, { useEffect, useState } from "react"
+import { ColumnDef } from "@tanstack/react-table"
+import { format } from "date-fns"
+import { useAppContext } from "@/hooks/useAppContext"
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card'
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { CalendarClock } from 'lucide-react'
-import { format } from 'date-fns'
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import { AppointmentActionDialog } from "./appointment-action-dialog"
+import { RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-interface AppointmentsTableProps {
-  onRowClick: (record: any) => void
+interface Appointment {
+  id: string
+  status: string
+  visit_date: string
+  reason: string
+  patient: {
+    first_name: string
+    last_name: string
+  }
 }
 
-const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
-  onRowClick,
-}) => {
-  const [appointments, setAppointments] = useState<any[]>([])
-  const [isLoading, setLoading] = useState(true)
-  const [visibleAppointments, setVisibleAppointments] = useState(3)
-  const [initialRowsShown, setInitialRowsShown] = useState(true)
+export default function AppointmentsDataTable() {
+  const [data, setData] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
+  const { user } = useAppContext()
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [actionOpen, setActionOpen] = useState(false)
+
+  const fetchAppointments = async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/dbhandler?model=appointment&medical_staff_id=${user.id}&orderBy=createdAt&orderDir=desc`)
+      const json = await res.json()
+      setData(json)
+    } catch (err) {
+      console.error("Error fetching appointments:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    fetch('/api/appointments')
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`)
-        }
-        return res.json()
-      })
-      .then((data) => {
-        console.log('Appointments data:', data)
-        setAppointments(data)
-        setLoading(false)
-      })
-      .catch((error) => {
-        console.error('Error fetching appointments:', error)
-        setLoading(false)
-      })
-  }, [])
+    fetchAppointments()
+  }, [user])
 
-  const loadMoreAppointments = () => {
-    setVisibleAppointments((prev) => prev + 3)
-    setInitialRowsShown(false)
+  const columns: ColumnDef<Appointment>[] = [
+    {
+      accessorKey: "patient",
+      header: "Patient",
+      cell: ({ row }) => `${row.original.patient?.first_name} ${row.original.patient?.last_name}`,
+    },
+    {
+      accessorKey: "reason",
+      header: "Reason",
+    },
+    {
+      accessorKey: "visit_date",
+      header: "Requested Date",
+      cell: ({ row }) => format(new Date(row.original.visit_date), "MMM d, h:mm a"),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.original.status
+        const variant =
+          status === 'completed' ? 'bg-green-600' :
+            status === 'booked' ? 'bg-blue-600 animate-pulse' :
+              status === 'unconfirmed_payment' ? 'bg-orange-500' :
+                status === 'paid' ? 'bg-green-500' :
+                  'bg-slate-500'
+
+        return <Badge className={`${variant} capitalize text-white`}>{status.replace('_', ' ')}</Badge>
+      },
+    },
+  ]
+
+  const handleRowClick = (appt: Appointment) => {
+    setSelectedAppointment(appt)
+    setActionOpen(true)
   }
 
-  const showLessAppointments = () => {
-    setVisibleAppointments(3)
-    setInitialRowsShown(true)
-  }
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-green-500 text-white'
-      case 'Canceled':
-        return 'bg-red-500 text-white'
-      case 'Scheduled':
-        return 'bg-yellow-500 text-white'
-      default:
-        return 'bg-gray-200 text-black'
-    }
-  }
-
-  const getPatientStatusTooltip = (status: string) => {
-    switch (status) {
-      case 'Stable':
-        return 'The patient is in stable condition.'
-      case 'Critical':
-        return 'The patient is in critical condition.'
-      case 'Recovering':
-        return 'The patient is recovering.'
-      default:
-        return 'Unknown patient status.'
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return format(date, 'MMMM d, yyyy')
-  }
-
-  if (isLoading)
-    return (
-      <Card>
-        <CardContent className="p-6 flex justify-center items-center">
-          Loading appointments...
-        </CardContent>
-      </Card>
-    )
+  if (loading && data.length === 0) return <div className="p-4 text-center animate-bounce">Loading appointments...</div>
 
   return (
-    <Card className='shadow-lg'>
-      <CardHeader>
-        <CardTitle className="text-lg font-bold flex items-center gap-2">
-          <CalendarClock className="h-5 w-5 text-muted-foreground" />
-          Appointments
-        </CardTitle>
-        <CardDescription className="text-xs text-muted-foreground">
-          Manage your patient appointments
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-0">
-        <div className="overflow-auto max-h-[350px]">
-          <Table className="border-collapse border-spacing-0">
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Patient Name</TableHead>
-                <TableHead>Case</TableHead>
-                <TableHead>Patient Status</TableHead>
-                <TableHead>Visit Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments && appointments.length > 0 ? (
-                appointments.slice(0, visibleAppointments).map((record, i) => (
-                  <TableRow
-                    key={record.record_id}
-                    onClick={() => onRowClick(record)}
-                  >
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell>
-                      {record.patients?.users?.first_name}{' '}
-                      {record.patients?.users?.last_name}
-                    </TableCell>
-                    <TableCell>{record.symptoms || 'Not specified'}</TableCell>
-                    <TableCell>
-                      <div
-                        className="tooltip"
-                        data-tooltip={getPatientStatusTooltip(
-                          record.patient_status || 'Unknown',
-                        )}
-                      >
-                        {record.patient_status || 'Unknown'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {record.visit_date
-                        ? formatDate(record.visit_date)
-                        : 'Not scheduled'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusVariant(record.visit_status)}>
-                        {record.visit_status || 'Unknown'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    No appointments found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+    <div className="p-4 bg-white rounded-2xl shadow-xl border border-slate-100">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-800">Appointment Requests</h2>
+          <p className="text-xs text-slate-500">Click on a row to manage the appointment</p>
         </div>
-      </CardContent>
-      {appointments && appointments.length > 3 && (
-        <CardFooter className="flex justify-center gap-4 pt-2">
-          {appointments.length > visibleAppointments && (
-            <Button onClick={loadMoreAppointments} variant="outline" size="sm">
-              Load More
-            </Button>
-          )}
-          {!initialRowsShown && (
-            <Button onClick={showLessAppointments} variant="outline" size="sm">
-              Show Less
-            </Button>
-          )}
-        </CardFooter>
-      )}
-    </Card>
+        <Button variant="ghost" size="icon" onClick={fetchAppointments}><RefreshCw className="h-4 w-4" /></Button>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={data}
+        onRowClick={handleRowClick}
+        searchColumn="reason"
+      />
+
+      <AppointmentActionDialog
+        open={actionOpen}
+        onOpenChange={setActionOpen}
+        appointment={selectedAppointment}
+        refreshData={fetchAppointments}
+      />
+    </div>
   )
 }
 
-export default AppointmentsTable
+const DataTable = ({ columns, data, onRowClick, searchColumn }: any) => {
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  })
+
+  return (
+    <div>
+      <div className="flex items-center justify-between py-2 mb-4">
+        {searchColumn && (
+          <Input
+            placeholder="Search reason..."
+            value={(table.getColumn(searchColumn)?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn(searchColumn)?.setFilterValue(event.target.value)
+            }
+            className="max-w-xs bg-slate-50 border-none rounded-lg"
+          />
+        )}
+      </div>
+
+      <div className="rounded-xl border border-slate-100 overflow-hidden">
+        <Table>
+          <TableHeader className="bg-slate-50">
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id}>
+                {group.headers.map((header) => (
+                  <TableHead key={header.id} className="text-xs font-bold text-slate-500 uppercase">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+
+          <TableBody>
+            {table.getRowModel().rows.length > 0 ? table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                className="cursor-pointer hover:bg-slate-50/50 transition-colors border-b border-slate-50"
+                onClick={() => onRowClick?.(row.original)}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="text-sm py-4">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-400">No appointments found.</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  )
+}

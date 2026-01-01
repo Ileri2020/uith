@@ -10,425 +10,211 @@ import { getGreeting } from '@/utils/greeting'
 import ErrorPage from '@/app/error'
 import { useAppContext } from '@/hooks/useAppContext'
 import PatientAppointmentsTable from '@/components/patient/patient-appointments-table'
+import BookAppointmentDialog from '@/components/patient/book-appointment-dialog'
+import PrescriptionTable from '@/components/patient/prescription-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { format } from 'date-fns'
 
 function SkeletonLoader() {
   return (
-    <div className="flex flex-col w-full gap-4 px-4 py-10 container mx-auto @container">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Skeleton className="h-8 w-1/3" />
-      </header>
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Skeleton className="h-40" />
-        <Skeleton className="h-40" />
-        <div className="hidden sm:grid gap-4 md:grid-cols-2 col-span-2">
-          <Skeleton className="h-40" />
-        </div>
-      </section>
-      <Skeleton className="h-64" />
-      <Skeleton className="h-64" />
+    <div className="flex flex-col w-full gap-4 px-4 py-10 container mx-auto @container text-center py-20">
+      <h2 className="text-2xl font-bold animate-pulse">Loading Your Health Dashboard...</h2>
+      <div className="flex flex-col w-full gap-4 mt-10">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-64" />
+      </div>
     </div>
   )
 }
 
 export default function PatientDashboard() {
-  interface PatientProfile {
-    blood_type: string
-    emergency_contact_id: number | null
-    users: {
-      address: string
-      last_name: string
-      first_name: string
-      national_id: number
-      phone_number: string
-      date_of_birth: string
-    }
-  }
-
-  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
-    null,
-  )
-  const [appointments, setAppointments] = useState([])
-  const [billing, setBilling] = useState([])
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [billing, setBilling] = useState<any[]>([])
+  const [posts, setPosts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const {user} = useAppContext()
+  const { user } = useAppContext()
 
-  const mockpatientinfo = {
-    blood_type: 'A+',
-    emergency_contact_id: 101,
-    users: {
-      address: '123 Health St, Bangkok, Thailand',
-      last_name: 'Smith',
-      first_name: 'John',
-      national_id: 1234567890123,
-      phone_number: '0812345678',
-      date_of_birth: '1985-06-15',
-    },
-  }
-  // const mockappointments = [
-  //   {
-  //     visit_date: '2024-06-10T09:00:00Z',
-  //     visit_status: 'Scheduled' as const,
-  //     medical_staff: {
-  //       users: {
-  //         last_name: 'Johnson',
-  //         first_name: 'Dr. Emily',
-  //       },
-  //     },
-  //   },
-  //   {
-  //     visit_date: '2024-06-15T14:30:00Z',
-  //     visit_status: 'Completed' as const,
-  //     medical_staff: {
-  //       users: {
-  //         last_name: 'Williams',
-  //         first_name: 'Dr. Michael',
-  //       },
-  //     },
-  //   },
-  //   {
-  //     visit_date: '2024-06-20T11:00:00Z',
-  //     visit_status: 'Canceled' as const,
-  //     medical_staff: {
-  //       users: {
-  //         last_name: 'Brown',
-  //         first_name: 'Dr. Sarah',
-  //       },
-  //     },
-  //   }
-  // ]
-  const mockBilling = [
-    {
-      bill_id: 1001,
-      total_price: 1250.0,
-      status: 'Pending',
-      created_at: '2024-06-01T10:00:00Z',
-      updated_at: '2024-06-01T10:00:00Z',
-      billing_items: [
-        {
-          item_id: 1,
-          quantity: 1,
-          item_type: 'Consultation',
-          unit_price: 800.0,
-          description: 'General physician consultation',
-          item_id_ref: 201,
-          total_price: 800.0,
-        },
-        {
-          item_id: 2,
-          quantity: 2,
-          item_type: 'Lab Test',
-          unit_price: 225.0,
-          description: 'Blood test panel',
-          item_id_ref: 305,
-          total_price: 450.0,
-        },
-      ],
-    },
-    {
-      bill_id: 1002,
-      total_price: 3200.0,
-      status: 'Paid',
-      created_at: '2024-05-20T14:20:00Z',
-      updated_at: '2024-05-22T09:15:00Z',
-      billing_items: [
-        {
-          item_id: 3,
-          quantity: 1,
-          item_type: 'Imaging',
-          unit_price: 3200.0,
-          description: 'X-ray chest',
-          item_id_ref: 410,
-          total_price: 3200.0,
-        },
-      ],
-    },
-  ]
+  useEffect(() => {
+    const trackVisit = async () => {
+      const browserId = localStorage.getItem('browserId') || Math.random().toString(36).substring(7);
+      localStorage.setItem('browserId', browserId);
+      await fetch('/api/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ browserId })
+      });
+    };
+    trackVisit();
+  }, []);
 
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
     try {
-      // const [patientResponse, appointmentsResponse, billingResponse] =
-      //   await Promise.all([
-      //     fetch('/api/patients/me'),
-      //     fetch('/api/appointments'),
-      //     fetch('/api/billing/patient/me'),
-      //   ])
+      const [apptRes, postsRes] = await Promise.all([
+        fetch(`/api/dbhandler?patient_id=${user.id}&model=appointment`),
+        fetch(`/api/dbhandler?model=post`)
+      ]);
 
-      // if (!patientResponse.ok) {
-      //   throw new Error('Failed to fetch patient profile')
-      // }
-      // if (!appointmentsResponse.ok) {
-      //   throw new Error('Failed to fetch appointments')
-      // }
-
-      const appointmentsResponse = await fetch(`/api/dbhandler?patient_id=${user.id}&model=appointment`);
-      if (!appointmentsResponse.ok) {
-        alert('Failed to fetch appointments');
-        return; 
+      if (apptRes.ok) {
+        setAppointments(await apptRes.json());
       }
-
-      // const patientData = await patientResponse.json()
-      const appointmentsData = await appointmentsResponse.json()
-      // const billingData = await billingResponse.json()
-
-      // setPatientProfile(patientData)
-      setAppointments(appointmentsData)
-      console.log('appointments for patient ID:', appointments);
-      // setBilling(billingData)
+      if (postsRes.ok) {
+        setPosts(await postsRes.json());
+      }
     } catch (err) {
-      // alert('An error occurred while fetching data')
+      console.error(err);
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user?.id])
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user?.id) fetchData()
+  }, [user?.id, fetchData])
 
-  // if (loading) {
-  //   return <SkeletonLoader />
-  // }
+  const announcements = posts.filter(p => p.type === 'announcement');
+  const regularPosts = posts.filter(p => p.type === 'post');
 
-  if (error) {
-    return <ErrorPage error={new Error(error)} reset={fetchData} />
+  if (loading) {
+    return <SkeletonLoader />
   }
 
   return (
-    <div className="flex flex-col w-full gap-4 px-4 py-10 container mx-auto @container">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-col w-full gap-8 px-4 py-10 container mx-auto bg-slate-50/50 min-h-screen">
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {getGreeting()}{' '}
-            {patientProfile?.users
-              ? `${patientProfile.users.first_name} ${patientProfile.users.last_name}`
-              : 'John Doe'}
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
+            {getGreeting()}, {user?.first_name || 'Patient'}
           </h1>
+          <p className="text-slate-500 mt-1">Welcome back to your health dashboard</p>
         </div>
+        <BookAppointmentDialog refreshData={fetchData} />
       </header>
-      <section className="grid grid-cols-1 sm:grid-cols-2 /lg:grid-cols-3 gap-4 md:px-20 max-w-6xl mx-auto">
-        <div className='flex flex-col gap-3'>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="space-y-8">
           <PatientInfoCard
-            patientProfile={mockpatientinfo}
-            //patientProfile={patientProfile }
+            patientProfile={{
+              blood_type: user?.blood_type || 'Unknown',
+              emergency_contact_id: null,
+              users: user
+            }}
             refreshData={fetchData}
           />
-          <AppointmentCalendarCard 
-            //appointments={appointments} 
-            appointments={appointments} 
-          />
+          <SummaryStatsCard appointments={appointments} billing={[]} />
+          <AppointmentCalendarCard appointments={appointments} />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <section className="hidden sm:grid gap-4 md:grid-cols-2 col-span-2">
-            <SummaryStatsCard appointments={appointments} billing={mockBilling} />
-          </section>
-          {!loading && appointments.length > 0 && (
-            <PatientAppointmentsTable appointments={appointments} />
-          )}
-          <BillingSummaryTable billing={billing} appointments={appointments} />
-        </div>
-      </section>
-      <FormListTable />
 
-      
+        <div className="xl:col-span-2 space-y-8">
+          <PatientAppointmentsTable appointments={appointments} refreshData={fetchData} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <PrescriptionTable patientId={user?.id} />
+            <FormListTable userId={user?.id} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="shadow-lg border-none bg-indigo-900 text-white">
+          <CardHeader>
+            <CardTitle>Hospital Announcements</CardTitle>
+            <CardDescription className="text-indigo-200">Latest updates from medical staff</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64">
+              <div className="space-y-4">
+                {announcements.map((a, i) => (
+                  <div key={i} className="p-4 bg-white/10 rounded-lg border border-white/20">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="secondary" className="bg-indigo-500 text-white border-none uppercase text-[10px]">
+                        {a.author?.role}
+                      </Badge>
+                      <span className="text-[10px] text-indigo-300">{format(new Date(a.createdAt), 'MMM d, yyyy')}</span>
+                    </div>
+                    <h4 className="font-bold text-lg">{a.title}</h4>
+                    <p className="text-sm text-indigo-100 mt-1">{a.description}</p>
+                  </div>
+                ))}
+                {announcements.length === 0 && <p className="text-center text-indigo-300 py-10">No announcements found</p>}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg border-none bg-white">
+          <CardHeader>
+            <CardTitle>Health Feed</CardTitle>
+            <CardDescription>Articles and tips from our professionals</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64">
+              <div className="space-y-6">
+                {regularPosts.map((p, i) => (
+                  <div key={i} className="flex gap-4 items-start border-b pb-6 last:border-0">
+                    <Avatar className="h-10 w-10 border">
+                      <AvatarImage src={p.author?.avatarUrl} />
+                      <AvatarFallback>{p.author?.first_name?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-slate-800">{p.title}</h4>
+                        <span className="text-xs text-slate-400">{format(new Date(p.createdAt), 'MMM d')}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-primary mb-2">By {p.author?.role} {p.author?.last_name}</p>
+                      <p className="text-sm text-slate-600 line-clamp-3">{p.description}</p>
+                    </div>
+                  </div>
+                ))}
+                {regularPosts.length === 0 && <p className="text-center text-slate-400 py-10">No posts found</p>}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
+function FormListTable({ userId }: { userId: string }) {
+  const [forms, setForms] = useState<any[]>([])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import { ColumnDef, SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, ColumnFiltersState, VisibilityState, RowSelectionState, flexRender } from '@tanstack/react-table'
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { toast } from '@/hooks/use-toast'
-
-
-type Form = {
-  id: string
-  title: string
-  owner: { first_name: string; last_name: string } | null
-  fields: Record<string, any>
-  createdAt: string
-}
-
-const columns: ColumnDef<Form>[] = [
-  { id: 'select', header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />, cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />, enableSorting: false, enableHiding: false },
-  { accessorKey: 'title', header: 'Form Name' },
-  { accessorKey: 'owner', header: 'Created By', cell: ({ row }) => `${row.original.owner?.first_name ?? ''} ${row.original.owner?.last_name ?? ''}` },
-  { accessorKey: 'createdAt', header: ({ column }) => <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>Created <ArrowUpDown className="ml-2 h-4 w-4" /></Button>, cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString() },
-  { id: 'actions', enableHiding: false, cell: ({ row }) => <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original.id)}>Copy ID</DropdownMenuItem></DropdownMenuContent></DropdownMenu> },
-]
-
-const FormListTable = () => {
-  const [data, setData] = React.useState<Form[]>([])
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
-  const [selectedForm, setSelectedForm] = React.useState<Form | null>(null)
-
-  // fetch all forms on mount
-  React.useEffect(() => {
+  useEffect(() => {
     async function loadForms() {
-      try {
-        const res = await fetch('/api/dbhandler?model=form')
-        const json = await res.json()
-        setData(json)
-      } catch {
-        toast({ title: 'Failed to load forms' })
-      }
+      if (!userId) return
+      const res = await fetch(`/api/dbhandler?model=formField&recipientId=${userId}`)
+      setForms(await res.json())
     }
     loadForms()
-  }, [])
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: { sorting, columnFilters, columnVisibility, rowSelection },
-  })
-
-  // when a row is selected, show the fill‑form UI
-  React.useEffect(() => {
-    const selectedIds = Object.keys(rowSelection)
-    if (selectedIds.length === 1) {
-      const form = data.find(f => f.id === selectedIds[0])
-      setSelectedForm(form ?? null)
-    } else {
-      setSelectedForm(null)
-    }
-  }, [rowSelection, data])
-
-  const handleSubmit = async (values: Record<string, any>) => {
-    if (!selectedForm) return
-    try {
-      const res = await fetch(`/api/dbhandler?model=form&id=${selectedForm.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { ...selectedForm.fields, ...values } }),
-      })
-      if (res.ok) {
-        toast({ title: 'Response saved!' })
-        setRowSelection({})
-        setSelectedForm(null)
-      } else {
-        const data = await res.json()
-        toast({ title: data.error || 'Save failed' })
-      }
-    } catch {
-      toast({ title: 'Network error' })
-    }
-  }
+  }, [userId])
 
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <div className='font-bold text-lg w-full /text-center'>Forms</div>
-      {selectedForm ? (
-        <div className="p-4 border rounded mb-4">
-          <h3 className="font-bold mb-2">{selectedForm.title}</h3>
-          <form onSubmit={e => { e.preventDefault(); handleSubmit({}) }} className="space-y-4">
-            {Object.entries(selectedForm.fields).map(([key, val]) => (
-              <div key={key}>
-                <label className="block text-sm font-medium">{key}</label>
-                <Input defaultValue={val as string} name={key} />
+    <Card className="shadow-lg border-none bg-white/50 backdrop-blur-md">
+      <CardHeader>
+        <CardTitle>My Forms</CardTitle>
+        <CardDescription>Forms assigned to you by professionals</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-60">
+          <div className="space-y-3">
+            {forms.map((f, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-white rounded-lg border group hover:border-primary transition-colors cursor-pointer">
+                <div>
+                  <p className="font-bold text-sm">{f.form?.title}</p>
+                  <p className="text-[10px] text-muted-foreground italic">Assigned by: {f.appointment?.medical_staff?.first_name} {f.appointment?.medical_staff?.last_name}</p>
+                </div>
+                <Badge variant={f.status === 'filled' ? 'default' : 'destructive'} className="text-[10px]">
+                  {f.status}
+                </Badge>
               </div>
             ))}
-            <Button type="submit">Submit</Button>
-            <Button variant="ghost" onClick={() => setRowSelection({})}>Cancel</Button>
-          </form>
-        </div>
-      ) : null}
-
-      <div className="flex items-center py-4">
-        <Input placeholder="Filter forms..." value={(table.getColumn('title')?.getFilterValue() as string) ?? ''} onChange={event => table.getColumn('title')?.setFilterValue(event.target.value)} className="max-w-sm" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table.getAllColumns().filter(col => col.getCanHide()).map(col => (
-              <DropdownMenuCheckboxItem key={col.id} checked={col.getIsVisible()} onCheckedChange={value => col.toggleVisibility(!!value)}>
-                {col.id}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <TableHead key={header.id}>
-                    {/* {header.isPlaceholder ? null : header.column.columnDef.header} */}
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? table.getRowModel().rows.map(row => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} onClick={() => row.toggleSelected()}>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id}>
-                    {/* {cell.column.columnDef.cell ? cell.column.columnDef.cell({ ...cell.getContext(), row }) : null} */}
-                    {cell.column.columnDef.cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null}
-                  </TableCell>
-                ))}
-              </TableRow>
-            )) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No forms found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-      </div>
-    </div>
+            {forms.length === 0 && <p className="text-center text-xs text-muted-foreground py-10">No forms assigned yet</p>}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   )
 }

@@ -23,7 +23,7 @@ export const signUpAction = async (formData: FormData) => {
   const confirm_password = formData.get('confirm_password')?.toString()
   const blood_type = formData.get('blood_type')?.toString()
   const emergency_contact = formData.get('emergency_contact')?.toString()
-  
+
 
   // const supabase = await createClient()  
   // const origin = (await headers()).get('origin')
@@ -103,7 +103,7 @@ export const signUpAction = async (formData: FormData) => {
     //   blood_type,
     //   emergency_contact_id: emergency_contact,
     // })
-  
+
     // if (patientError) {
     //   console.error(patientError.code + ' ' + patientError.message)
     //   return encodedRedirect(
@@ -116,7 +116,7 @@ export const signUpAction = async (formData: FormData) => {
     if (!User) {
       console.error('Signup succeeded but user object is null')
       return encodedRedirect('error', '/sign-up', 'Signup failed unexpectedly.')
-  }
+    }
 
     return encodedRedirect(
       'success',
@@ -144,26 +144,26 @@ export const signInAction = async (formData: FormData) => {
   // })
 
   try {
-    user = await prisma.user.findUnique({
-      where: { email },
+    user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email },
+          { phone_number: email }
+        ]
+      },
     });
+    if (!user) {
+      return encodedRedirect('error', '/sign-in', 'User not found')
+    }
     const isvalid = await bcrypt.compare(password, user.password)
-    if(isvalid){
-    // const { id, ...updateduser } = user;
-    // const updateduser = user;
-    // return new Response(JSON.stringify(updateduser), {
-    //   status: 200,
-    //   headers: { 'Content-Type': 'application/json' },
-    // });
+    if (isvalid) {
+      // login successful
     } else {
       return encodedRedirect('error', '/sign-in', 'wrong password')
     }
   } catch (error) {
     console.error('LOGIN ERROR:', error);
-    // return new Response(
-    //   JSON.stringify({ error: 'Failed to Login' }),
-    //   { status: 405, headers: { 'Content-Type': 'application/json' } }
-    // );
+    return encodedRedirect('error', '/sign-in', 'An error occurred during sign in')
   }
 
 
@@ -178,15 +178,15 @@ export const signInAction = async (formData: FormData) => {
   }
 
   const { role, userId } = result
-  if (role === 'Patient') {
+  if (role === 'patient') {
     return redirect('/patient')
-  } else if (role === 'Doctor') {
+  } else if (role === 'doctor') {
     return redirect('/doctor')
-  } else if (role === 'Pharmacist') {
+  } else if (role === 'pharmacist') {
     return redirect('/pharmacy')
-  } else if (role === 'Nurse') {
+  } else if (role === 'nurse') {
     return redirect('/nurse')
-  } else if (role === 'Admin') {
+  } else if (role === 'admin') {
     return redirect('/admin')
   }
   return redirect('/')
